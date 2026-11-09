@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INCIDENTES DE CALIDAD - TOMAS NUTRICIONALES GESTANTES</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#120a04;--card:#1a1008;--border:#5c3a1e;--orange:#fb923c;--orange2:#fdba74;--amber:#fbbf24;--red:#f87171;--green:#34d399;--text:#fff7ed;--muted:#d6b896;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);min-height:100vh;padding:14px 12px 32px;
+  background:
+    radial-gradient(ellipse 120% 80% at 10% -8%, rgba(234,88,12,0.38) 0%, transparent 50%),
+    radial-gradient(ellipse 90% 60% at 92% 10%, rgba(251,146,60,0.2) 0%, transparent 45%),
+    radial-gradient(ellipse 70% 50% at 50% 105%, rgba(180,83,9,0.22) 0%, transparent 50%),
+    linear-gradient(160deg,#0c0704 0%,#1a0e06 28%,#221208 55%,#140a05 80%,#0a0603 100%);
+  background-attachment:fixed;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(251,146,60,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(251,191,36,0.03) 1px,transparent 1px);
+  background-size:48px 48px;mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,black 20%,transparent 75%);}
+.wrap{max-width:1540px;margin:0 auto;position:relative;z-index:1;}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px;}
+h1{font-size:1.4rem;font-weight:800;background:linear-gradient(90deg,#fdba74,#fb923c,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.subtitle{color:var(--muted);font-size:.84rem;margin-top:2px;}
+.badge{background:rgba(251,146,60,.12);border:1px solid var(--orange);color:var(--orange2);padding:5px 11px;border-radius:999px;font-size:.74rem;font-weight:600;}
+.filters{background:linear-gradient(145deg,rgba(26,16,8,.97),rgba(34,18,8,.92));border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;box-shadow:0 8px 28px rgba(0,0,0,.35);}
+.filters h3{font-size:.76rem;text-transform:uppercase;letter-spacing:.9px;color:var(--orange2);margin-bottom:8px;}
+.filter-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+@media(max-width:1100px){.filter-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.filter-grid{grid-template-columns:1fr;}}
+.filter-item label{display:block;font-size:.68rem;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.4px;}
+.filter-item select{width:100%;background:#120a04;border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:7px;font-size:.8rem;outline:none;}
+.filter-item select:focus{border-color:var(--orange);}
+.filter-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.btn{padding:6px 13px;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer;border:none;}
+.btn-primary{background:linear-gradient(90deg,#ea580c,#fb923c);color:#1a0e06;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+.btn-ghost:hover{border-color:var(--orange);color:var(--orange2);}
+.cz-banner{display:none;margin-bottom:14px;border-radius:16px;overflow:hidden;border:1px solid var(--border);position:relative;box-shadow:0 12px 40px rgba(234,88,12,.25);background:#120a04;}
+.cz-banner.show{display:block;}
+.cz-banner img{width:100%;max-height:420px;height:auto;object-fit:contain;object-position:center;display:block;margin:0 auto;}
+.cz-banner .cz-label{position:absolute;left:18px;bottom:16px;z-index:2;background:rgba(26,16,8,.9);border:1px solid var(--orange);padding:10px 16px;border-radius:12px;font-weight:700;font-size:1.05rem;color:#fff;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+.alert-box{display:flex;gap:16px;align-items:flex-start;background:linear-gradient(135deg,rgba(251,146,60,.14),rgba(239,68,68,.1));border:1px solid rgba(251,146,60,.45);border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 0 30px rgba(251,146,60,.1);}
+.alert-icon{flex-shrink:0;width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,#ea580c,#f97316);display:flex;align-items:center;justify-content:center;font-size:1.8rem;box-shadow:0 0 20px rgba(234,88,12,.4);}
+.alert-box h3{font-size:.95rem;color:#fdba74;margin-bottom:6px;font-weight:800;}
+.alert-box p{font-size:.82rem;color:var(--text);line-height:1.5;opacity:.95;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:linear-gradient(145deg,rgba(26,16,8,.95),rgba(34,18,8,.9));border:1px solid var(--border);border-radius:14px;padding:14px;position:relative;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--orange),var(--amber),transparent);opacity:.9;}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;}
+.kpi-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.35rem;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.25);}
+.kpi .lbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);}
+.kpi .val{font-size:1.45rem;font-weight:800;color:#fff;line-height:1.1;margin-top:4px;}
+.kpi .val.orange{color:var(--orange2);} .kpi .val.amber{color:var(--amber);} .kpi .val.red{color:var(--red);} .kpi .val.green{color:var(--green);}
+.kpi .sub{font-size:.7rem;color:var(--muted);margin-top:2px;}
+.sec{margin:18px 0 8px;}
+.sec h2{font-size:.92rem;font-weight:700;color:var(--orange2);display:flex;align-items:center;gap:7px;}
+.sec h2::before{content:'';width:3px;height:13px;background:var(--orange);border-radius:2px;}
+.maps-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;}
+@media(max-width:900px){.maps-grid{grid-template-columns:1fr;}}
+.map-card{background:linear-gradient(145deg,rgba(26,16,8,.97),rgba(34,18,8,.92));border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.map-card h3{font-size:.72rem;color:var(--muted);padding:8px 12px 4px;text-transform:uppercase;letter-spacing:.5px;}
+.map-box{height:280px;position:relative;}
+.map-box .leaflet-container{height:100%;width:100%;background:#120a04;}
+.map-info{position:absolute;top:8px;right:8px;z-index:1000;background:rgba(26,16,8,.92);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:.7rem;color:var(--muted);}
+.map-info b{color:var(--orange2);}
+.leaflet-popup-content-wrapper{background:#1a1008;color:#fff7ed;border:1px solid #5c3a1e;border-radius:9px;}
+.leaflet-popup-tip{background:#1a1008;}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.charts-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;}
+@media(max-width:1000px){.charts,.charts-3{grid-template-columns:1fr;}}
+.chart-card{background:linear-gradient(145deg,rgba(26,16,8,.97),rgba(34,18,8,.92));border:1px solid var(--border);border-radius:12px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.28);}
+.chart-card h3{font-size:.72rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.chart-box{height:220px;position:relative;}
+.chart-box.tall{height:260px;}
+.ben-section{background:linear-gradient(145deg,rgba(26,16,8,.97),rgba(34,18,8,.92));border:1px solid var(--border);border-radius:14px;padding:0;overflow:hidden;margin-bottom:16px;box-shadow:0 8px 28px rgba(0,0,0,.32);}
+.ben-header{display:flex;align-items:center;gap:16px;padding:16px 18px;background:linear-gradient(90deg,rgba(251,146,60,.12),rgba(251,191,36,.08));border-bottom:1px solid var(--border);}
+.ben-illus{width:72px;height:72px;border-radius:16px;flex-shrink:0;background:linear-gradient(135deg,#c2410c,#fb923c);display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px rgba(251,146,60,.35);font-size:2rem;}
+.ben-header-text h3{font-size:1rem;font-weight:700;color:#fff;margin-bottom:3px;}
+.ben-header-text p{font-size:.78rem;color:var(--muted);}
+.ben-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);}
+.ben-toolbar input{background:#120a04;border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-size:.8rem;min-width:200px;outline:none;}
+.ben-toolbar input:focus{border-color:var(--orange);}
+.ben-toolbar .count{font-size:.78rem;color:var(--muted);margin-left:auto;}
+.ben-table-wrap{overflow:auto;max-height:380px;}
+table.ben-table{width:100%;border-collapse:collapse;font-size:.76rem;}
+table.ben-table thead{position:sticky;top:0;z-index:2;}
+table.ben-table th{background:#221208;color:var(--orange2);text-align:left;padding:9px 10px;font-size:.66rem;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;}
+table.ben-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text);}
+table.ben-table tbody tr:hover{background:rgba(251,146,60,.06);}
+table.ben-table .doc{font-family:ui-monospace,monospace;color:var(--orange2);}
+.sem-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:.72rem;background:rgba(251,146,60,.2);color:#fdba74;border:1px solid rgba(251,146,60,.4);}
+.ben-pager{display:flex;gap:8px;align-items:center;justify-content:center;padding:12px;border-top:1px solid rgba(255,255,255,.04);}
+.ben-pager button{background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.35);color:var(--orange2);padding:5px 12px;border-radius:6px;font-size:.76rem;cursor:pointer;}
+.ben-pager button:disabled{opacity:.35;cursor:default;}
+.rules-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+.rule-card{background:linear-gradient(145deg,rgba(26,16,8,.97),rgba(34,18,8,.92));border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:0 6px 22px rgba(0,0,0,.3);}
+.rule-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:8px;align-items:center;}
+.rule-name{font-size:.95rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:10px;}
+.rule-code{font-size:.64rem;font-weight:600;padding:2px 7px;border-radius:5px;background:rgba(251,146,60,.15);color:var(--orange2);border:1px solid rgba(251,146,60,.35);}
+.rule-icon-wrap{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:linear-gradient(135deg,rgba(251,146,60,.25),rgba(251,191,36,.15));border:1px solid rgba(251,146,60,.3);}
+.rule-count .big{font-size:1.35rem;font-weight:800;color:var(--orange2);}
+.rule-count .pct{font-size:.74rem;color:var(--muted);}
+.rule-desc{font-size:.8rem;color:var(--muted);line-height:1.4;background:rgba(0,0,0,.22);border-left:3px solid var(--orange);padding:8px 11px;border-radius:0 7px 7px 0;margin-bottom:10px;}
+.rule-body{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+@media(max-width:1100px){.rule-body{grid-template-columns:repeat(2,1fr);}}
+.mini{background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.04);border-radius:9px;padding:9px 11px;}
+.mini h4{font-size:.62rem;text-transform:uppercase;letter-spacing:.5px;color:var(--orange2);margin-bottom:5px;font-weight:700;}
+.mini ul{list-style:none;}
+.mini li{display:flex;justify-content:space-between;gap:4px;font-size:.74rem;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.03);}
+.mini .k{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%;}
+.mini .v{font-weight:700;color:#fff;flex-shrink:0;}
+.rank-bar{height:3px;background:rgba(255,255,255,.05);border-radius:2px;margin-top:2px;overflow:hidden;}
+.rank-bar span{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--orange),var(--amber));}
+.empty{text-align:center;padding:30px 14px;color:var(--muted);}
+footer{margin-top:22px;padding-top:10px;border-top:1px solid rgba(255,255,255,.05);font-size:.72rem;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;}
+
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.btn-menu{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(90deg,#9a3412,#c2410c);color:#fff7ed;border:1px solid rgba(251,146,60,.45);padding:8px 14px;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;text-decoration:none;}
+.btn-menu:hover{border-color:var(--orange2);color:#fff;}
+.btn-export{background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.4);color:var(--orange2);padding:6px 12px;border-radius:7px;font-size:.76rem;font-weight:600;cursor:pointer;}
+.btn-export:hover{background:rgba(251,146,60,.25);}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="btn-menu" href="Menu_Incidentes_Calidad.html">← Volver al menú</a>
+</div>
+<header>
+  <div>
+    <h1>INCIDENTES DE CALIDAD - TOMAS NUTRICIONALES GESTANTES</h1>
+    <p class="subtitle">Malla Tomas Gestantes · Primera Infancia · Valle del Cauca · Corte 31/10/2026</p>
+  </div>
+  <div class="badge" id="badgeTotal">Cargando…</div>
+</header>
+
+<div class="alert-box">
+  <div class="alert-icon">🤰</div>
+  <div>
+    <h3>Regla de control · Gestantes &gt; 40 semanas</h3>
+    <p>Los registros corresponden a tomas de <strong>personas gestantes con más de 40 semanas de gestación</strong> (Regla_9_2 · MAYOR40SEM_GESTANTES). Se recomienda validar con el profesional de salud la edad gestacional reportada y el estado nutricional asociado (IMC gestante).</p>
+  </div>
+</div>
+
+<div class="filters">
+  <h3>Filtros en cascada</h3>
+  <div class="filter-grid">
+    <div class="filter-item"><label>Centro Zonal UDS</label><select id="fCZ"><option value="">Todos</option></select></div>
+    <div class="filter-item"><label>Municipio UDS</label><select id="fMuni"><option value="">Todos</option></select></div>
+    <div class="filter-item"><label>Número Contrato</label><select id="fContrato"><option value="">Todos</option></select></div>
+    <div class="filter-item"><label>Servicio</label><select id="fServ"><option value="">Todos</option></select></div>
+    <div class="filter-item"><label>Entidad Contratista</label><select id="fEntidad"><option value="">Todos</option></select></div>
+    <div class="filter-item"><label>Semanas gestación</label><select id="fSem"><option value="">Todas</option></select></div>
+    <div class="filter-item"><label>Estado nutricional</label><select id="fEst"><option value="">Todos</option></select></div>
+    <div class="filter-item"><label>Unidad de Servicio</label><select id="fUDS"><option value="">Todas</option></select></div>
+  </div>
+  <div class="filter-actions">
+    <button class="btn btn-primary" onclick="applyFilters()">Aplicar</button>
+    <button class="btn btn-ghost" onclick="clearFilters()">Limpiar filtros</button>
+  </div>
+</div>
+
+<div class="cz-banner" id="czBanner">
+  <img id="czImg" src="" alt="Centro Zonal">
+  <div class="cz-label" id="czLabel"></div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-top"><div class="lbl">Alertas filtradas</div><div class="kpi-icon">📋</div></div><div class="val orange" id="kTotal">—</div><div class="sub" id="kTotalSub">de total</div></div>
+  <div class="kpi"><div class="kpi-top"><div class="lbl">Sem. gestación prom.</div><div class="kpi-icon">📅</div></div><div class="val amber" id="kSem">—</div><div class="sub">semanas</div></div>
+  <div class="kpi"><div class="kpi-top"><div class="lbl">Entidades</div><div class="kpi-icon">🏛️</div></div><div class="val green" id="kEnt">—</div><div class="sub">contratistas</div></div>
+  <div class="kpi"><div class="kpi-top"><div class="lbl">UDS afectadas</div><div class="kpi-icon">🏠</div></div><div class="val orange" id="kUds">—</div><div class="sub">unidades</div></div>
+  <div class="kpi"><div class="kpi-top"><div class="lbl">Top estado nutr.</div><div class="kpi-icon">⚖️</div></div><div class="val red" id="kTopPct">—</div><div class="sub" id="kTopName">—</div></div>
+</div>
+
+<div class="sec"><h2>Detalle de gestante, semanas y regla de calidad</h2></div>
+<div class="ben-section">
+  <div class="ben-header">
+    <div class="ben-illus">🤰</div>
+    <div class="ben-header-text">
+      <h3>Matriz de tomas nutricionales gestantes</h3>
+      <p>Documento · Semanas gestación · Estado nutricional · Regla y descripción. Se actualiza con los filtros.</p>
+    </div>
+  </div>
+  <div class="ben-toolbar">
+    <input type="text" id="benSearch" placeholder="Buscar documento, semanas o regla…" oninput="renderBenTable(0)">
+    <span style="font-size:.74rem;color:var(--orange2);opacity:.9;">💡 Pase el mouse sobre la descripción para ver el texto completo</span>
+    <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn-export" onclick="exportExcel()">⬇ Excel</button>
+    <span class="count" id="benCount">0 registros</span>
+  </div>
+  <div class="ben-table-wrap">
+    <table class="ben-table">
+      <thead>
+        <tr>
+          <th>Nº Documento</th>
+          <th>Tipo Doc.</th>
+          <th>Tipo Beneficiario</th>
+          <th>Semanas gest.</th>
+          <th>Estado nutricional</th>
+          <th>Regla</th>
+          <th>Nombre regla</th>
+          <th>Descripción regla</th>
+        </tr>
+      </thead>
+      <tbody id="benBody"></tbody>
+    </table>
+  </div>
+  <div class="ben-pager">
+    <button id="benPrev" onclick="benPage(-1)">← Anterior</button>
+    <span id="benPageInfo">Página 1</span>
+    <button id="benNext" onclick="benPage(1)">Siguiente →</button>
+  </div>
+</div>
+
+<div class="sec"><h2>Evolución y distribución</h2></div>
+<div class="charts">
+  <div class="chart-card"><h3>📈 Tomas por mes</h3><div class="chart-box tall"><canvas id="chartLine"></canvas></div></div>
+  <div class="chart-card"><h3>📊 Semanas de gestación</h3><div class="chart-box tall"><canvas id="chartSem"></canvas></div></div>
+</div>
+<div class="charts-3">
+  <div class="chart-card"><h3>⚖️ Estado nutricional gestante</h3><div class="chart-box"><canvas id="chartEstado"></canvas></div></div>
+  <div class="chart-card"><h3>📍 Top municipios</h3><div class="chart-box"><canvas id="chartMuni"></canvas></div></div>
+  <div class="chart-card"><h3>🏢 Centros zonales</h3><div class="chart-box"><canvas id="chartCZ"></canvas></div></div>
+</div>
+<div class="charts">
+  <div class="chart-card"><h3>🔬 Dispersión IMC vs semanas</h3><div class="chart-box tall"><canvas id="chartScatter"></canvas></div></div>
+  <div class="chart-card"><h3>🍩 Participación por servicio</h3><div class="chart-box tall"><canvas id="chartServ"></canvas></div></div>
+</div>
+
+<div class="sec"><h2>Mapas de Unidades de Servicio</h2></div>
+<div class="maps-grid">
+  <div class="map-card"><h3>Mapa 1 · Calles</h3><div class="map-box"><div id="mapDark"></div><div class="map-info">UDS: <b id="mapCount1">0</b></div></div></div>
+  <div class="map-card"><h3>Mapa 2 · Satélite</h3><div class="map-box"><div id="mapSat"></div><div class="map-info">UDS: <b id="mapCount2">0</b></div></div></div>
+</div>
+
+<div class="sec"><h2>Detalle por regla de calidad</h2></div>
+<div class="rules-grid" id="rulesContainer"><div class="empty">Cargando…</div></div>
+
+<footer>
+  <div>Fuente: Malla_TomasGestantes_31102026.xlsx · Valle del Cauca</div>
+  <div><strong>ICBF</strong> · Tomas nutricionales gestantes · Primera Infancia</div>
+</footer>
+</div>
+<script>
+const RAW = {"records": [{"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069388 | EL FLORERO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1111816400", "tipodoc": "TARJETA DE IDENTIDAD", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "BAJO PESO PARA LA EDAD GESTACIONAL", "imc": 24.21, "mes": "2026-08", "codUds": "7610900069388", "nomUds": "EL FLORERO", "lat": 3.467613888888889, "lon": -77.2083638888889}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069399 | EL DIBUJO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1148447795", "tipodoc": "TARJETA DE IDENTIDAD", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 26.53, "mes": "2026-10", "codUds": "7610900069399", "nomUds": "EL DIBUJO", "lat": 3.5104333333333333, "lon": -77.29656666666666}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069399 | EL DIBUJO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1192754026", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 25.95, "mes": "2026-10", "codUds": "7610900069399", "nomUds": "EL DIBUJO", "lat": 3.5104333333333333, "lon": -77.29656666666666}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069399 | EL DIBUJO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1148444454", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 26.12, "mes": "2026-10", "codUds": "7610900069399", "nomUds": "EL DIBUJO", "lat": 3.5104333333333333, "lon": -77.29656666666666}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069399 | EL DIBUJO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1151438372", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "BAJO PESO PARA LA EDAD GESTACIONAL", "imc": 24.74, "mes": "2026-10", "codUds": "7610900069399", "nomUds": "EL DIBUJO", "lat": 3.5104333333333333, "lon": -77.29656666666666}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069399 | EL DIBUJO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1111773173", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 26.04, "mes": "2026-10", "codUds": "7610900069399", "nomUds": "EL DIBUJO", "lat": 3.5104333333333333, "lon": -77.29656666666666}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100041263 | LAS FLORECITAS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1143958960", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.16, "mes": "2026-10", "codUds": "7600100041263", "nomUds": "LAS FLORECITAS", "lat": 3.424138888888889, "lon": -76.47180555555556}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100060562 | MIS PRIMEROS PASOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1143934689", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.85, "mes": "2026-10", "codUds": "7600100060562", "nomUds": "MIS PRIMEROS PASOS", "lat": 3.420158333333333, "lon": -76.47375555555556}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900114406 | LTS 13 PASITOS TRAVIESOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1111774467", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.12, "mes": "2026-09", "codUds": "7610900114406", "nomUds": "LTS 13 PASITOS TRAVIESOS", "lat": 3.868333333333333, "lon": -76.98055555555555}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069399 | EL DIBUJO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1028184920", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 25.83, "mes": "2026-10", "codUds": "7610900069399", "nomUds": "EL DIBUJO", "lat": 3.5104333333333333, "lon": -77.29656666666666}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900138648 | LTS 11 PEQUEÑOS CARIÑOSITOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1193140873", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "SOBREPESO PARA LA EDAD GESTACIONAL", "imc": 30.71, "mes": "2026-10", "codUds": "7610900138648", "nomUds": "LTS 11 PEQUEÑOS CARIÑOSITOS", "lat": 3.8872138888888887, "lon": -77.01926944444445}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900138648 | LTS 11 PEQUEÑOS CARIÑOSITOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1007825357", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "SOBREPESO PARA LA EDAD GESTACIONAL", "imc": 31.48, "mes": "2026-10", "codUds": "7610900138648", "nomUds": "LTS 11 PEQUEÑOS CARIÑOSITOS", "lat": 3.8872138888888887, "lon": -77.01926944444445}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "761091133278 | MARIPOSAS DEL SOL NACIENTE", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1111777334", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "SOBREPESO PARA LA EDAD GESTACIONAL", "imc": 29.89, "mes": "2026-10", "codUds": "761091133278", "nomUds": "MARIPOSAS DEL SOL NACIENTE", "lat": 3.8691725, "lon": -76.978825}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069388 | EL FLORERO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1151438395", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 25.95, "mes": "2026-10", "codUds": "7610900069388", "nomUds": "EL FLORERO", "lat": 3.467613888888889, "lon": -77.2083638888889}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069399 | EL DIBUJO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1192753969", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 26.83, "mes": "2026-10", "codUds": "7610900069399", "nomUds": "EL DIBUJO", "lat": 3.5104333333333333, "lon": -77.29656666666666}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015682024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACIÓN DE HOGARES DE BIENESTAR COMUNEROS IV GRUPO I", "uds": "7600100064394 | CRECEREMOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1006183776", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.45, "mes": "2026-08", "codUds": "7600100064394", "nomUds": "CRECEREMOS", "lat": 3.412777777777778, "lon": -76.49638888888889}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900114406 | LTS 13 PASITOS TRAVIESOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1151440294", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.59, "mes": "2026-08", "codUds": "7610900114406", "nomUds": "LTS 13 PASITOS TRAVIESOS", "lat": 3.868333333333333, "lon": -76.98055555555555}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100060562 | MIS PRIMEROS PASOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1143934689", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.07, "mes": "2026-08", "codUds": "7600100060562", "nomUds": "MIS PRIMEROS PASOS", "lat": 3.420158333333333, "lon": -76.47375555555556}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76016142024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES HOGARES DE BIENESTAR COMUNEROS 1 GRUPO 3", "uds": "7600100077131 | MANITAS DEL FUTURO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1085911923", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.64, "mes": "2026-08", "codUds": "7600100077131", "nomUds": "MANITAS DEL FUTURO", "lat": 3.243055555555556, "lon": -76.2936111111111}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900114406 | LTS 13 PASITOS TRAVIESOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1151440294", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.66, "mes": "2026-10", "codUds": "7610900114406", "nomUds": "LTS 13 PASITOS TRAVIESOS", "lat": 3.868333333333333, "lon": -76.98055555555555}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "761091113508 | FAMILIAR FANTASIAS CREATIVA", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1028181471", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "OBESIDAD PARA LA EDAD GESTACIONAL", "imc": 38.13, "mes": "2026-10", "codUds": "761091113508", "nomUds": "FAMILIAR FANTASIAS CREATIVA", "lat": 3.8811738888888887, "lon": -77.00725166666666}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015682024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACIÓN DE HOGARES DE BIENESTAR COMUNEROS IV GRUPO I", "uds": "7600100064465 | OSITOS MELOSOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1006108623", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.7, "mes": "2026-09", "codUds": "7600100064465", "nomUds": "OSITOS MELOSOS", "lat": 3.4099999999999997, "lon": -76.49888888888889}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100069775 | CASITA DE MIEL 4", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1006180226", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.41, "mes": "2026-09", "codUds": "7600100069775", "nomUds": "CASITA DE MIEL 4", "lat": 3.4205846944444445, "lon": -76.47396450000001}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100069775 | CASITA DE MIEL 4", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1006180226", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.51, "mes": "2026-10", "codUds": "7600100069775", "nomUds": "CASITA DE MIEL 4", "lat": 3.4205846944444445, "lon": -76.47396450000001}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76016142024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES HOGARES DE BIENESTAR COMUNEROS 1 GRUPO 3", "uds": "7600100022556 | LOS TRAVIESOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1192782226", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.06, "mes": "2026-08", "codUds": "7600100022556", "nomUds": "LOS TRAVIESOS", "lat": 3.4080555555555554, "lon": -76.49416666666667}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76016142024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES HOGARES DE BIENESTAR COMUNEROS 1 GRUPO 3", "uds": "7600100022556 | LOS TRAVIESOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1192782226", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.28, "mes": "2026-09", "codUds": "7600100022556", "nomUds": "LOS TRAVIESOS", "lat": 3.4080555555555554, "lon": -76.49416666666667}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100061106 | ESTRELLITAS TRAVIESAS 4", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1006180810", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.89, "mes": "2026-10", "codUds": "7600100061106", "nomUds": "ESTRELLITAS TRAVIESAS 4", "lat": 3.418194444444444, "lon": -76.47170555555556}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100061106 | ESTRELLITAS TRAVIESAS 4", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1143957790", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.89, "mes": "2026-10", "codUds": "7600100061106", "nomUds": "ESTRELLITAS TRAVIESAS 4", "lat": 3.418194444444444, "lon": -76.47170555555556}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900114441 | CARITAS ALEGRES", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1192719539", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "BAJO PESO PARA LA EDAD GESTACIONAL", "imc": 21.53, "mes": "2026-10", "codUds": "7610900114441", "nomUds": "CARITAS ALEGRES", "lat": 3.862777777777778, "lon": -76.99645277777778}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015682024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACIÓN DE HOGARES DE BIENESTAR COMUNEROS IV GRUPO I", "uds": "7600100064394 | CRECEREMOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1006183776", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.83, "mes": "2026-09", "codUds": "7600100064394", "nomUds": "CRECEREMOS", "lat": 3.412777777777778, "lon": -76.49638888888889}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100041263 | LAS FLORECITAS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1143958960", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.12, "mes": "2026-09", "codUds": "7600100041263", "nomUds": "LAS FLORECITAS", "lat": 3.424138888888889, "lon": -76.47180555555556}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100060562 | MIS PRIMEROS PASOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1143934689", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.54, "mes": "2026-09", "codUds": "7600100060562", "nomUds": "MIS PRIMEROS PASOS", "lat": 3.420158333333333, "lon": -76.47375555555556}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900114406 | LTS 13 PASITOS TRAVIESOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1111774467", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.24, "mes": "2026-10", "codUds": "7610900114406", "nomUds": "LTS 13 PASITOS TRAVIESOS", "lat": 3.868333333333333, "lon": -76.98055555555555}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900128920 | LTS 7 RENACER", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1111770897", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.79, "mes": "2026-10", "codUds": "7610900128920", "nomUds": "LTS 7 RENACER", "lat": 3.8777222222222223, "lon": -77.03080555555556}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "761091133278 | MARIPOSAS DEL SOL NACIENTE", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1006268678", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "SOBREPESO PARA LA EDAD GESTACIONAL", "imc": 30.27, "mes": "2026-10", "codUds": "761091133278", "nomUds": "MARIPOSAS DEL SOL NACIENTE", "lat": 3.8691725, "lon": -76.978825}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76016142024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES HOGARES DE BIENESTAR COMUNEROS 1 GRUPO 3", "uds": "7600100077131 | MANITAS DEL FUTURO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1106518530", "tipodoc": "TARJETA DE IDENTIDAD", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.85, "mes": "2026-09", "codUds": "7600100077131", "nomUds": "MANITAS DEL FUTURO", "lat": 3.243055555555556, "lon": -76.2936111111111}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100061106 | ESTRELLITAS TRAVIESAS 4", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1006180810", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.29, "mes": "2026-08", "codUds": "7600100061106", "nomUds": "ESTRELLITAS TRAVIESAS 4", "lat": 3.418194444444444, "lon": -76.47170555555556}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100069775 | CASITA DE MIEL 4", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1006180226", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.15, "mes": "2026-08", "codUds": "7600100069775", "nomUds": "CASITA DE MIEL 4", "lat": 3.4205846944444445, "lon": -76.47396450000001}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "761091133278 | MARIPOSAS DEL SOL NACIENTE", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1111777334", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "SOBREPESO PARA LA EDAD GESTACIONAL", "imc": 29.89, "mes": "2026-09", "codUds": "761091133278", "nomUds": "MARIPOSAS DEL SOL NACIENTE", "lat": 3.8691725, "lon": -76.978825}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900114441 | CARITAS ALEGRES", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1192719539", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "BAJO PESO PARA LA EDAD GESTACIONAL", "imc": 21.53, "mes": "2026-09", "codUds": "7610900114441", "nomUds": "CARITAS ALEGRES", "lat": 3.862777777777778, "lon": -76.99645277777778}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76016142024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES HOGARES DE BIENESTAR COMUNEROS 1 GRUPO 3", "uds": "7600100077131 | MANITAS DEL FUTURO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1085911923", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.84, "mes": "2026-09", "codUds": "7600100077131", "nomUds": "MANITAS DEL FUTURO", "lat": 3.243055555555556, "lon": -76.2936111111111}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015682024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACIÓN DE HOGARES DE BIENESTAR COMUNEROS IV GRUPO I", "uds": "7600100078190 | SOL NACIENTE", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1193401510", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.94, "mes": "2026-10", "codUds": "7600100078190", "nomUds": "SOL NACIENTE", "lat": 3.412777777777778, "lon": -76.49638888888889}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900128920 | LTS 7 RENACER", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1111770897", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.79, "mes": "2026-09", "codUds": "7610900128920", "nomUds": "LTS 7 RENACER", "lat": 3.8777222222222223, "lon": -77.03080555555556}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900138648 | LTS 11 PEQUEÑOS CARIÑOSITOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1193140873", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "SOBREPESO PARA LA EDAD GESTACIONAL", "imc": 30.56, "mes": "2026-09", "codUds": "7610900138648", "nomUds": "LTS 11 PEQUEÑOS CARIÑOSITOS", "lat": 3.8872138888888887, "lon": -77.01926944444445}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015762024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "uds": "7610900104682 | LOS CARIÑOSITOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1059045263", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.91, "mes": "2026-08", "codUds": "7610900104682", "nomUds": "LOS CARIÑOSITOS", "lat": 3.254583333333333, "lon": -77.41961388888889}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069388 | EL FLORERO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1028183943", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 25.78, "mes": "2026-10", "codUds": "7610900069388", "nomUds": "EL FLORERO", "lat": 3.467613888888889, "lon": -77.2083638888889}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069399 | EL DIBUJO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1151438810", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "BAJO PESO PARA LA EDAD GESTACIONAL", "imc": 24.39, "mes": "2026-10", "codUds": "7610900069399", "nomUds": "EL DIBUJO", "lat": 3.5104333333333333, "lon": -77.29656666666666}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "761091133278 | MARIPOSAS DEL SOL NACIENTE", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1192738662", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "BAJO PESO PARA LA EDAD GESTACIONAL", "imc": 24.82, "mes": "2026-10", "codUds": "761091133278", "nomUds": "MARIPOSAS DEL SOL NACIENTE", "lat": 3.8691725, "lon": -76.978825}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900114406 | LTS 13 PASITOS TRAVIESOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1028160622", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 29.19, "mes": "2026-10", "codUds": "7610900114406", "nomUds": "LTS 13 PASITOS TRAVIESOS", "lat": 3.868333333333333, "lon": -76.98055555555555}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069388 | EL FLORERO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "31602674", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 26.17, "mes": "2026-10", "codUds": "7610900069388", "nomUds": "EL FLORERO", "lat": 3.467613888888889, "lon": -77.2083638888889}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069388 | EL FLORERO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1148447881", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 26.17, "mes": "2026-10", "codUds": "7610900069388", "nomUds": "EL FLORERO", "lat": 3.467613888888889, "lon": -77.2083638888889}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069399 | EL DIBUJO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1192754493", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 26.3, "mes": "2026-10", "codUds": "7610900069399", "nomUds": "EL DIBUJO", "lat": 3.5104333333333333, "lon": -77.29656666666666}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76016142024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES HOGARES DE BIENESTAR COMUNEROS 1 GRUPO 3", "uds": "7600100077131 | MANITAS DEL FUTURO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1106518530", "tipodoc": "TARJETA DE IDENTIDAD", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.55, "mes": "2026-08", "codUds": "7600100077131", "nomUds": "MANITAS DEL FUTURO", "lat": 3.243055555555556, "lon": -76.2936111111111}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015842024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "uds": "7610900069399 | EL DIBUJO", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1028183826", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 26.3, "mes": "2026-10", "codUds": "7610900069399", "nomUds": "EL DIBUJO", "lat": 3.5104333333333333, "lon": -77.29656666666666}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76015762024", "serv": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "uds": "7610900104682 | LOS CARIÑOSITOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1111783469", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "OBESIDAD PARA LA EDAD GESTACIONAL", "imc": 33.79, "mes": "2026-08", "codUds": "7610900104682", "nomUds": "LOS CARIÑOSITOS", "lat": 3.254583333333333, "lon": -77.41961388888889}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900128920 | LTS 7 RENACER", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1111770897", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.79, "mes": "2026-08", "codUds": "7610900128920", "nomUds": "LTS 7 RENACER", "lat": 3.8777222222222223, "lon": -77.03080555555556}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900138648 | LTS 11 PEQUEÑOS CARIÑOSITOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1007825357", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "SOBREPESO PARA LA EDAD GESTACIONAL", "imc": 31.48, "mes": "2026-09", "codUds": "7610900138648", "nomUds": "LTS 11 PEQUEÑOS CARIÑOSITOS", "lat": 3.8872138888888887, "lon": -77.01926944444445}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "761091133278 | MARIPOSAS DEL SOL NACIENTE", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1192738662", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "BAJO PESO PARA LA EDAD GESTACIONAL", "imc": 24.31, "mes": "2026-09", "codUds": "761091133278", "nomUds": "MARIPOSAS DEL SOL NACIENTE", "lat": 3.8691725, "lon": -76.978825}, {"muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "contrato": "76010962026", "serv": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "uds": "7610900114406 | LTS 13 PASITOS TRAVIESOS", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1151440294", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 41, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 28.66, "mes": "2026-09", "codUds": "7610900114406", "nomUds": "LTS 13 PASITOS TRAVIESOS", "lat": 3.868333333333333, "lon": -76.98055555555555}, {"muni": "Cali", "cz": "CZ SURORIENTAL", "contrato": "76015742024", "serv": "HCB FAMI - FAMILIAR Y COMUNITARIA", "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "uds": "7600100061106 | ESTRELLITAS TRAVIESAS 4", "reglaCod": "Regla_9_2", "reglaNom": "MAYOR40SEM_GESTANTES", "reglaDesc": "Registros donde hay tomas gestantes mayores a 40 semanas", "doc": "1006180810", "tipodoc": "CEDULA DE CIUDADANIA", "tipo": "PERSONA GESTANTE", "semanas": 42, "estadoG": "IMC ADECUADO PARA LA EDAD GESTACIONAL", "imc": 27.63, "mes": "2026-09", "codUds": "7600100061106", "nomUds": "ESTRELLITAS TRAVIESAS 4", "lat": 3.418194444444444, "lon": -76.47170555555556}], "uniques": {"municipios": ["Buenaventura", "Cali"], "centros_zonales": ["CZ BUENAVENTURA", "CZ SURORIENTAL"], "contratos": ["76010962026", "76015682024", "76015742024", "76015762024", "76015842024", "76016142024"], "servicios": ["EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "HCB FAMI - FAMILIAR Y COMUNITARIA", "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA"], "entidades": ["ASOCIACION DE PADRES DE HOGARES DE BIENESTAR LA INTEGRACION", "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR MANUELA BELTRAN NO 2", "ASOCIACION DE PADRES HOGARES DE BIENESTAR COMUNEROS 1 GRUPO 3", "ASOCIACIÓN DE HOGARES DE BIENESTAR COMUNEROS IV GRUPO I", "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO CAJAMBRE", "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA"], "semanas": ["41", "42"], "estados": ["BAJO PESO PARA LA EDAD GESTACIONAL", "IMC ADECUADO PARA LA EDAD GESTACIONAL", "OBESIDAD PARA LA EDAD GESTACIONAL", "SOBREPESO PARA LA EDAD GESTACIONAL"], "uds": ["7600100022556 | LOS TRAVIESOS", "7600100041263 | LAS FLORECITAS", "7600100060562 | MIS PRIMEROS PASOS", "7600100061106 | ESTRELLITAS TRAVIESAS 4", "7600100064394 | CRECEREMOS", "7600100064465 | OSITOS MELOSOS", "7600100069775 | CASITA DE MIEL 4", "7600100077131 | MANITAS DEL FUTURO", "7600100078190 | SOL NACIENTE", "7610900069388 | EL FLORERO", "7610900069399 | EL DIBUJO", "7610900104682 | LOS CARIÑOSITOS", "7610900114406 | LTS 13 PASITOS TRAVIESOS", "7610900114441 | CARITAS ALEGRES", "7610900128920 | LTS 7 RENACER", "7610900138648 | LTS 11 PEQUEÑOS CARIÑOSITOS", "761091113508 | FAMILIAR FANTASIAS CREATIVA", "761091133278 | MARIPOSAS DEL SOL NACIENTE"]}, "reglas_master": [{"codigo": "Regla_9_2", "nombre": "MAYOR40SEM_GESTANTES", "descripcion": "Registros donde hay tomas gestantes mayores a 40 semanas"}], "map_points": [{"cod": "7600100022556", "nom": "LOS TRAVIESOS", "muni": "Cali", "cz": "CZ SURORIENTAL", "lat": 3.4080555555555554, "lon": -76.49416666666667, "n": 2, "entidad": "ASOCIACION DE PADRES HOGARES DE BIENESTAR COM"}, {"cod": "7600100041263", "nom": "LAS FLORECITAS", "muni": "Cali", "cz": "CZ SURORIENTAL", "lat": 3.424138888888889, "lon": -76.47180555555556, "n": 2, "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR "}, {"cod": "7600100060562", "nom": "MIS PRIMEROS PASOS", "muni": "Cali", "cz": "CZ SURORIENTAL", "lat": 3.420158333333333, "lon": -76.47375555555556, "n": 3, "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR "}, {"cod": "7600100061106", "nom": "ESTRELLITAS TRAVIESAS 4", "muni": "Cali", "cz": "CZ SURORIENTAL", "lat": 3.418194444444444, "lon": -76.47170555555556, "n": 4, "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR "}, {"cod": "7600100064394", "nom": "CRECEREMOS", "muni": "Cali", "cz": "CZ SURORIENTAL", "lat": 3.412777777777778, "lon": -76.49638888888889, "n": 2, "entidad": "ASOCIACIÓN DE HOGARES DE BIENESTAR COMUNEROS "}, {"cod": "7600100064465", "nom": "OSITOS MELOSOS", "muni": "Cali", "cz": "CZ SURORIENTAL", "lat": 3.4099999999999997, "lon": -76.49888888888889, "n": 1, "entidad": "ASOCIACIÓN DE HOGARES DE BIENESTAR COMUNEROS "}, {"cod": "7600100069775", "nom": "CASITA DE MIEL 4", "muni": "Cali", "cz": "CZ SURORIENTAL", "lat": 3.4205846944444445, "lon": -76.47396450000001, "n": 3, "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR "}, {"cod": "7600100077131", "nom": "MANITAS DEL FUTURO", "muni": "Cali", "cz": "CZ SURORIENTAL", "lat": 3.243055555555556, "lon": -76.2936111111111, "n": 4, "entidad": "ASOCIACION DE PADRES HOGARES DE BIENESTAR COM"}, {"cod": "7600100078190", "nom": "SOL NACIENTE", "muni": "Cali", "cz": "CZ SURORIENTAL", "lat": 3.412777777777778, "lon": -76.49638888888889, "n": 1, "entidad": "ASOCIACIÓN DE HOGARES DE BIENESTAR COMUNEROS "}, {"cod": "7610900069388", "nom": "EL FLORERO", "muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "lat": 3.467613888888889, "lon": -77.2083638888889, "n": 5, "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL"}, {"cod": "7610900069399", "nom": "EL DIBUJO", "muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "lat": 3.5104333333333333, "lon": -77.29656666666666, "n": 10, "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL"}, {"cod": "7610900104682", "nom": "LOS CARIÑOSITOS", "muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "lat": 3.254583333333333, "lon": -77.41961388888889, "n": 2, "entidad": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL"}, {"cod": "7610900114406", "nom": "LTS 13 PASITOS TRAVIESOS", "muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "lat": 3.868333333333333, "lon": -76.98055555555555, "n": 6, "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR "}, {"cod": "7610900114441", "nom": "CARITAS ALEGRES", "muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "lat": 3.862777777777778, "lon": -76.99645277777778, "n": 2, "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR "}, {"cod": "7610900128920", "nom": "LTS 7 RENACER", "muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "lat": 3.8777222222222223, "lon": -77.03080555555556, "n": 3, "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR "}, {"cod": "7610900138648", "nom": "LTS 11 PEQUEÑOS CARIÑOSITOS", "muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "lat": 3.8872138888888887, "lon": -77.01926944444445, "n": 4, "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR "}, {"cod": "761091113508", "nom": "FAMILIAR FANTASIAS CREATIVA", "muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "lat": 3.8811738888888887, "lon": -77.00725166666666, "n": 1, "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR "}, {"cod": "761091133278", "nom": "MARIPOSAS DEL SOL NACIENTE", "muni": "Buenaventura", "cz": "CZ BUENAVENTURA", "lat": 3.8691725, "lon": -76.978825, "n": 5, "entidad": "ASOCIACION DE PADRES DE HOGARES DE BIENESTAR "}], "total": 60};
+const records = RAW.records;
+const uniquesAll = RAW.uniques;
+const reglasMaster = RAW.reglas_master;
+const mapPointsAll = RAW.map_points;
+const TOTAL = RAW.total;
+
+let charts = {};
+let mapDark=null, mapSat=null, layerDark=null, layerSat=null;
+let filteredCache = [];
+let benPageIdx = 0;
+const PAGE_SIZE = 25;
+const palette = ['#fb923c','#fbbf24','#f97316','#f87171','#34d399','#fdba74','#ea580c','#fcd34d','#fb7185','#f59e0b'];
+const FILTER_IDS = ['fCZ','fMuni','fContrato','fServ','fEntidad','fSem','fEst','fUDS'];
+const KEY_OF = {fCZ:'cz',fMuni:'muni',fContrato:'contrato',fServ:'serv',fEntidad:'entidad',fSem:'semanas',fEst:'estadoG',fUDS:'uds'};
+
+function fillSelect(id, arr, keepValue) {
+  const sel = document.getElementById(id);
+  const current = keepValue ? sel.value : '';
+  const allLabel = (id==='fUDS'||id==='fSem') ? 'Todas' : 'Todos';
+  sel.innerHTML = '<option value="">' + allLabel + '</option>';
+  arr.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = String(v).length > 62 ? String(v).slice(0,59)+'…' : v;
+    sel.appendChild(o);
+  });
+  if (current && arr.map(String).includes(String(current))) sel.value = current;
+  else sel.value = '';
+}
+function initSelects() {
+  fillSelect('fCZ', uniquesAll.centros_zonales);
+  fillSelect('fMuni', uniquesAll.municipios);
+  fillSelect('fContrato', uniquesAll.contratos);
+  fillSelect('fServ', uniquesAll.servicios);
+  fillSelect('fEntidad', uniquesAll.entidades);
+  fillSelect('fSem', uniquesAll.semanas);
+  fillSelect('fEst', uniquesAll.estados);
+  fillSelect('fUDS', uniquesAll.uds);
+}
+initSelects();
+
+function getFilters() {
+  return {
+    cz: document.getElementById('fCZ').value,
+    muni: document.getElementById('fMuni').value,
+    contrato: document.getElementById('fContrato').value,
+    serv: document.getElementById('fServ').value,
+    entidad: document.getElementById('fEntidad').value,
+    semanas: document.getElementById('fSem').value,
+    estadoG: document.getElementById('fEst').value,
+    uds: document.getElementById('fUDS').value
+  };
+}
+function filterRecords(f) {
+  return records.filter(r => {
+    if (f.cz && r.cz !== f.cz) return false;
+    if (f.muni && r.muni !== f.muni) return false;
+    if (f.contrato && r.contrato !== f.contrato) return false;
+    if (f.serv && r.serv !== f.serv) return false;
+    if (f.entidad && r.entidad !== f.entidad) return false;
+    if (f.semanas && String(r.semanas) !== String(f.semanas)) return false;
+    if (f.estadoG && r.estadoG !== f.estadoG) return false;
+    if (f.uds && r.uds !== f.uds) return false;
+    return true;
+  });
+}
+function updateAllCascading() {
+  const f = getFilters();
+  FILTER_IDS.forEach(fid => {
+    const excludeKey = KEY_OF[fid];
+    const subset = records.filter(r => {
+      if (excludeKey !== 'cz' && f.cz && r.cz !== f.cz) return false;
+      if (excludeKey !== 'muni' && f.muni && r.muni !== f.muni) return false;
+      if (excludeKey !== 'contrato' && f.contrato && r.contrato !== f.contrato) return false;
+      if (excludeKey !== 'serv' && f.serv && r.serv !== f.serv) return false;
+      if (excludeKey !== 'entidad' && f.entidad && r.entidad !== f.entidad) return false;
+      if (excludeKey !== 'semanas' && f.semanas && String(r.semanas) !== String(f.semanas)) return false;
+      if (excludeKey !== 'estadoG' && f.estadoG && r.estadoG !== f.estadoG) return false;
+      if (excludeKey !== 'uds' && f.uds && r.uds !== f.uds) return false;
+      return true;
+    });
+    let vals = [...new Set(subset.map(r => excludeKey==='semanas' ? String(r.semanas) : r[excludeKey]).filter(v => v!=='' && v!=null && v!=='None'))].sort();
+    fillSelect(fid, vals, true);
+  });
+}
+function topN(arr, key, n=4) {
+  const c = {};
+  arr.forEach(r => { const k = key==='semanas' ? String(r.semanas) : r[key]; if(k) c[k]=(c[k]||0)+1; });
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,n);
+}
+function short(s,n=34){ return (!s)?'':(String(s).length>n?String(s).slice(0,n)+'…':String(s)); }
+function renderList(entries){
+  if(!entries.length) return '<li><span class="k">Sin datos</span></li>';
+  const maxV=Math.max(...entries.map(e=>e[1]));
+  return entries.map(([k,v])=>`<li><span class="k" title="${k}">${short(k)}</span><span class="v">${v.toLocaleString('es-CO')}</span></li><div class="rank-bar"><span style="width:${(v/maxV*100).toFixed(0)}%"></span></div>`).join('');
+}
+
+function updateCzBanner(f) {
+  const banner = document.getElementById('czBanner');
+  const imgMap = {
+    "CZ BUENAVENTURA": "https://www.icbf.gov.co/sites/default/files/4410048.jpg",
+    "CZ BUGA": "https://www.icbf.gov.co/sites/default/files/4406050.jpg",
+    "CZ CARTAGO": "https://www.icbf.gov.co/sites/default/files/cz_cartago_20250507.jpg",
+    "CZ JAMUNDI": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ6QFjIAG5g-Y5PUdo2sM-Sh-6qbXpGf6be5udF_efCL38rbrkQ6OgA7JM&s=10",
+    "CZ LADERA": "https://www.icbf.gov.co/sites/default/files/cz_ladera_20180906-b.jpg",
+    "CZ NORORIENTAL": "https://www.icbf.gov.co/sites/default/files/cz_nororiental_20250313.jpg",
+    "CZ PALMIRA": "https://www.icbf.gov.co/sites/default/files/cz_palmira_20190828.jpg",
+    "CZ ROLDANILLO": "https://www.icbf.gov.co/sites/default/files/cz_roldanillo_20180904.jpg",
+    "CZ SEVILLA": "https://www.icbf.gov.co/sites/default/files/cz_sevilla_20190911.jpg",
+    "CZ SUR": "https://www.icbf.gov.co/sites/default/files/ICBF_2018_28.png",
+    "CZ SURORIENTAL": "https://www.icbf.gov.co/sites/default/files/cz_suroriental_20250408.jpg",
+    "CZ TULUA": "https://www.icbf.gov.co/sites/default/files/cz_tulua_20240904_2.jpg",
+    "CZ YUMBO": "https://www.icbf.gov.co/sites/default/files/cz_yumbo_20180904.jpg"
+  };
+  const regional = "https://www.icbf.gov.co/sites/default/files/21907467.jpg";
+  const url = f.cz ? (imgMap[f.cz] || regional) : regional;
+  const label = f.cz || "Regional Valle del Cauca · ICBF";
+  const img = document.getElementById('czImg');
+  img.src = url;
+  img.onerror = function(){ this.src = regional; };
+  document.getElementById('czLabel').textContent = label;
+  banner.classList.add('show');
+}
+
+function renderBenTable(page) {
+  if (typeof page === 'number') benPageIdx = page;
+  const q = (document.getElementById('benSearch').value || '').toLowerCase().trim();
+  let rows = filteredCache;
+  if (q) {
+    rows = rows.filter(r => {
+      const blob = [r.doc,r.tipodoc,r.tipo,r.semanas,r.estadoG,r.reglaCod,r.reglaNom,r.reglaDesc].join(' ').toLowerCase();
+      return blob.includes(q);
+    });
+  }
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  if (benPageIdx >= totalPages) benPageIdx = totalPages - 1;
+  if (benPageIdx < 0) benPageIdx = 0;
+  const slice = rows.slice(benPageIdx * PAGE_SIZE, benPageIdx * PAGE_SIZE + PAGE_SIZE);
+  const body = document.getElementById('benBody');
+  if (!slice.length) {
+    body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">Sin registros</td></tr>';
+  } else {
+    body.innerHTML = slice.map(r => `<tr>
+      <td class="doc">${r.doc||'—'}</td>
+      <td>${r.tipodoc||'—'}</td>
+      <td>${short(r.tipo||'—',24)}</td>
+      <td><span class="sem-pill">${r.semanas!=null?r.semanas:'—'}</span></td>
+      <td title="${(r.estadoG||'').replace(/"/g,'&quot;')}">${short(r.estadoG||'—',32)}</td>
+      <td>${r.reglaCod||'—'}</td>
+      <td>${short(r.reglaNom||'—',22)}</td>
+      <td title="${(r.reglaDesc||'').replace(/"/g,'&quot;')}">${short(r.reglaDesc||'—',48)}</td>
+    </tr>`).join('');
+  }
+  document.getElementById('benCount').textContent = rows.length.toLocaleString('es-CO') + ' registros';
+  document.getElementById('benPageInfo').textContent = 'Página ' + (benPageIdx+1) + ' de ' + totalPages;
+  document.getElementById('benPrev').disabled = benPageIdx <= 0;
+  document.getElementById('benNext').disabled = benPageIdx >= totalPages - 1;
+}
+function benPage(delta) { benPageIdx += delta; renderBenTable(); }
+
+function destroyChart(id){ if(charts[id]){ charts[id].destroy(); charts[id]=null; } }
+function initMaps() {
+  if (mapDark && mapSat) { setTimeout(()=>{mapDark.invalidateSize();mapSat.invalidateSize();},100); return; }
+  mapDark = L.map('mapDark',{zoomControl:true,preferCanvas:true}).setView([3.85,-76.70],8);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles &copy; Esri',maxZoom:19}).addTo(mapDark);
+  layerDark = L.layerGroup().addTo(mapDark);
+  mapSat = L.map('mapSat',{zoomControl:true,preferCanvas:true}).setView([3.85,-76.70],8);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles &copy; Esri',maxZoom:18}).addTo(mapSat);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,opacity:0.9}).addTo(mapSat);
+  layerSat = L.layerGroup().addTo(mapSat);
+  setTimeout(()=>{mapDark.invalidateSize();mapSat.invalidateSize();},250);
+}
+function updateMaps(filtered) {
+  initMaps(); layerDark.clearLayers(); layerSat.clearLayers();
+  const udsCodes=new Set(), udsCounts={};
+  filtered.forEach(r=>{ if(r.codUds){ udsCodes.add(r.codUds); udsCounts[r.codUds]=(udsCounts[r.codUds]||0)+1; }});
+  const pts=(filtered.length===TOTAL||filtered.length===0)?mapPointsAll:mapPointsAll.filter(p=>udsCodes.has(p.cod));
+  document.getElementById('mapCount1').textContent=pts.length;
+  document.getElementById('mapCount2').textContent=pts.length;
+  if(!pts.length){ mapDark.setView([3.85,-76.70],8); mapSat.setView([3.85,-76.70],8); return; }
+  const bounds=[];
+  pts.forEach(p=>{
+    const n=udsCounts[p.cod]||p.n||1;
+    const radius=Math.max(6,Math.min(16,4+Math.sqrt(n)*1.5));
+    const popup='<b>'+(p.nom||'UDS')+'</b><br>Código: '+p.cod+'<br>Municipio: '+(p.muni||'—')+'<br>CZ: '+(p.cz||'—')+'<br>Alertas: <b>'+n+'</b>';
+    const m1=L.circleMarker([p.lat,p.lon],{radius,fillColor:'#fb923c',color:'#c2410c',weight:1.5,opacity:1,fillOpacity:0.8});
+    m1.bindPopup(popup); layerDark.addLayer(m1);
+    const m2=L.circleMarker([p.lat,p.lon],{radius,fillColor:'#fbbf24',color:'#b45309',weight:1.5,opacity:1,fillOpacity:0.85});
+    m2.bindPopup(popup); layerSat.addLayer(m2);
+    bounds.push([p.lat,p.lon]);
+  });
+  if(bounds.length===1){ mapDark.setView(bounds[0],14); mapSat.setView(bounds[0],14); }
+  else{ mapDark.fitBounds(bounds,{padding:[35,35],maxZoom:13}); mapSat.fitBounds(bounds,{padding:[35,35],maxZoom:13}); }
+  setTimeout(()=>{mapDark.invalidateSize();mapSat.invalidateSize();},120);
+}
+function makeBar(id, labels, values, horizontal) {
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'bar',
+    data:{labels,datasets:[{data:values,backgroundColor:labels.map((_,i)=>palette[i%palette.length]),borderRadius:6,borderSkipped:false,maxBarThickness:horizontal?22:36}]},
+    options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(26,16,8,0.95)',titleColor:'#fdba74',bodyColor:'#fff7ed',borderColor:'#5c3a1e',borderWidth:1,padding:10,cornerRadius:8}},
+      scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#d6b896',font:{size:10}}},y:{grid:{display:!horizontal,color:'rgba(255,255,255,0.05)'},ticks:{color:'#d6b896',font:{size:10}}}},
+      animation:{duration:500}}
+  });
+}
+function makeDoughnut(id, labels, values) {
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'doughnut',
+    data:{labels,datasets:[{data:values,backgroundColor:labels.map((_,i)=>palette[i%palette.length]),borderWidth:2,borderColor:'#1a1008',hoverOffset:8}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{legend:{position:'right',labels:{boxWidth:12,padding:8,font:{size:10},color:'#d6b896',usePointStyle:true}},
+        tooltip:{backgroundColor:'rgba(26,16,8,0.95)',titleColor:'#fdba74',bodyColor:'#fff7ed',borderColor:'#5c3a1e',borderWidth:1,padding:10,cornerRadius:8}},
+      animation:{duration:600}}
+  });
+}
+function makeLine(id, labels, values) {
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'line',
+    data:{labels,datasets:[{label:'Tomas',data:values,borderColor:'#fb923c',backgroundColor:'rgba(251,146,60,0.15)',fill:true,tension:0.35,pointRadius:4,pointBackgroundColor:'#fdba74'}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(26,16,8,0.95)',titleColor:'#fdba74',bodyColor:'#fff7ed',borderColor:'#5c3a1e',borderWidth:1,padding:10,cornerRadius:8}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#d6b896',font:{size:10}}},y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#d6b896',font:{size:10}}}},
+      animation:{duration:600}}
+  });
+}
+function makeScatter(id, points) {
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'scatter',
+    data:{datasets:[{label:'IMC vs semanas',data:points,backgroundColor:'rgba(251,146,60,0.7)',borderColor:'#ea580c',pointRadius:6,pointHoverRadius:8}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(26,16,8,0.95)',titleColor:'#fdba74',bodyColor:'#fff7ed',borderColor:'#5c3a1e',borderWidth:1,padding:10,cornerRadius:8,
+        callbacks:{label:function(ctx){return 'Sem: '+ctx.raw.x+' · IMC: '+ctx.raw.y;}}}},
+      scales:{x:{title:{display:true,text:'Semanas gestación',color:'#d6b896',font:{size:11}},grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#d6b896'}},
+             y:{title:{display:true,text:'IMC gestante',color:'#d6b896',font:{size:11}},grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#d6b896'}}},
+      animation:{duration:600}}
+  });
+}
+
+
+function rowsForExport() {
+  const q = (document.getElementById('benSearch').value || '').toLowerCase().trim();
+  let rows = filteredCache;
+  if (q) {
+    rows = rows.filter(r => [r.doc,r.tipodoc,r.tipo,r.semanas,r.estadoG,r.reglaCod,r.reglaNom,r.reglaDesc].join(' ').toLowerCase().includes(q));
+  }
+  return rows;
+}
+function exportCSV() {
+  const rows = rowsForExport();
+  const headers = ['NumeroDocumento','TipoDocumento','TipoBeneficiario','SemanasGestacion','EstadoNutricional','Regla','NombreRegla','DescripcionRegla','CentroZonal','Municipio','Contrato','Entidad','Servicio','UDS'];
+  const lines = [headers.join(';')];
+  rows.forEach(r => {
+    const cells = [r.doc,r.tipodoc,r.tipo,r.semanas,r.estadoG,r.reglaCod,r.reglaNom,r.reglaDesc,r.cz,r.muni,r.contrato,r.entidad,r.serv,r.uds]
+      .map(v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"');
+    lines.push(cells.join(';'));
+  });
+  const blob = new Blob(['\ufeff' + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'detalle_tomas_gestantes_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function exportExcel() {
+  const rows = rowsForExport();
+  let table = '<table><tr><th>NumeroDocumento</th><th>TipoDocumento</th><th>TipoBeneficiario</th><th>SemanasGestacion</th><th>EstadoNutricional</th><th>Regla</th><th>NombreRegla</th><th>DescripcionRegla</th><th>CentroZonal</th><th>Municipio</th><th>Contrato</th><th>Entidad</th><th>Servicio</th><th>UDS</th></tr>';
+  rows.forEach(r => {
+    table += '<tr>' + [r.doc,r.tipodoc,r.tipo,r.semanas,r.estadoG,r.reglaCod,r.reglaNom,r.reglaDesc,r.cz,r.muni,r.contrato,r.entidad,r.serv,r.uds]
+      .map(v => '<td>' + String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</td>').join('') + '</tr>';
+  });
+  table += '</table>';
+  const htmlX = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>' + table + '</body></html>';
+  const blob = new Blob([htmlX], {type:'application/vnd.ms-excel'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'detalle_tomas_gestantes_' + new Date().toISOString().slice(0,10) + '.xls';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+
+function applyFilters(doCascade) {
+  if (doCascade !== false) updateAllCascading();
+  const f = getFilters();
+  const filtered = filterRecords(f);
+  filteredCache = filtered;
+  const n = filtered.length;
+  updateCzBanner(f);
+
+  const byRule = {};
+  filtered.forEach(r => { const k=r.reglaNom; if(!byRule[k]) byRule[k]=[]; byRule[k].push(r); });
+  const ruleStats = Object.entries(byRule).map(([nom, rows]) => {
+    const master = reglasMaster.find(m => m.nombre === nom) || {};
+    return {
+      codigo: master.codigo || rows[0].reglaCod, nombre: nom,
+      descripcion: master.descripcion || rows[0].reglaDesc,
+      count: rows.length, pct: n ? +(rows.length/n*100).toFixed(1) : 0,
+      top_entidades: Object.fromEntries(topN(rows,'entidad')),
+      top_contratos: Object.fromEntries(topN(rows,'contrato',3)),
+      top_uds: Object.fromEntries(topN(rows,'uds',3)),
+      top_municipios: Object.fromEntries(topN(rows,'muni',3)),
+      semanas: Object.fromEntries(topN(rows,'semanas',4)),
+      estados: Object.fromEntries(topN(rows,'estadoG',4)),
+      top_servicios: Object.fromEntries(topN(rows,'serv',2))
+    };
+  }).sort((a,b)=>b.count-a.count);
+
+  const semAvg = filtered.filter(r=>r.semanas!=null).map(r=>r.semanas);
+  document.getElementById('kTotal').textContent = n.toLocaleString('es-CO');
+  document.getElementById('kTotalSub').textContent = 'de '+TOTAL.toLocaleString('es-CO')+' totales';
+  document.getElementById('kSem').textContent = semAvg.length ? (semAvg.reduce((a,b)=>a+b,0)/semAvg.length).toFixed(1) : '—';
+  document.getElementById('kEnt').textContent = new Set(filtered.map(r=>r.entidad)).size;
+  document.getElementById('kUds').textContent = new Set(filtered.map(r=>r.uds)).size;
+  const estT = topN(filtered,'estadoG',1);
+  if (estT.length) {
+    document.getElementById('kTopPct').textContent = (estT[0][1]/n*100).toFixed(0)+'%';
+    document.getElementById('kTopName').textContent = short(estT[0][0],28);
+  } else {
+    document.getElementById('kTopPct').textContent = '—';
+    document.getElementById('kTopName').textContent = 'Sin datos';
+  }
+  document.getElementById('badgeTotal').textContent = n.toLocaleString('es-CO')+' alertas filtradas';
+
+  Chart.defaults.color='#d6b896'; Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+
+  const months = {};
+  filtered.forEach(r => { if(r.mes) months[r.mes]=(months[r.mes]||0)+1; });
+  const mLabels = Object.keys(months).sort();
+  makeLine('chartLine', mLabels, mLabels.map(m => months[m]));
+
+  const semT = topN(filtered,'semanas',6);
+  makeBar('chartSem', semT.map(x=>'Sem '+x[0]), semT.map(x=>x[1]), false);
+
+  const estadoT = topN(filtered,'estadoG',6);
+  makeDoughnut('chartEstado', estadoT.map(x=>short(x[0],28)), estadoT.map(x=>x[1]));
+  const muniT=topN(filtered,'muni',8); makeBar('chartMuni', muniT.map(x=>short(x[0],18)), muniT.map(x=>x[1]), true);
+  const czT=topN(filtered,'cz',8); makeBar('chartCZ', czT.map(x=>short(x[0],18)), czT.map(x=>x[1]), false);
+
+  const scatterPts = filtered.filter(r=>r.semanas!=null && r.imc!=null).map(r=>({x:r.semanas,y:r.imc}));
+  makeScatter('chartScatter', scatterPts);
+
+  const servT=topN(filtered,'serv',6); makeDoughnut('chartServ', servT.map(x=>short(x[0],26)), servT.map(x=>x[1]));
+
+  updateMaps(filtered);
+  renderBenTable(0);
+
+  const cont = document.getElementById('rulesContainer');
+  if (!ruleStats.length) { cont.innerHTML='<div class="empty">No hay alertas con los filtros seleccionados.</div>'; return; }
+  cont.innerHTML = ruleStats.map(r => {
+    return `<div class="rule-card">
+      <div class="rule-head">
+        <div class="rule-name"><div class="rule-icon-wrap">🤰</div><span class="rule-code">${r.codigo}</span> ${r.nombre}</div>
+        <div class="rule-count"><div class="big">${r.count.toLocaleString('es-CO')}</div><div class="pct">${r.pct}% del filtro</div></div>
+      </div>
+      <div class="rule-desc">${r.descripcion}</div>
+      <div class="rule-body">
+        <div class="mini"><h4>🏛 Entidad</h4><ul>${renderList(Object.entries(r.top_entidades))}</ul></div>
+        <div class="mini"><h4>📄 Contrato</h4><ul>${renderList(Object.entries(r.top_contratos))}</ul></div>
+        <div class="mini"><h4>🏠 UDS</h4><ul>${renderList(Object.entries(r.top_uds))}</ul></div>
+        <div class="mini"><h4>📍 Municipio</h4><ul>${renderList(Object.entries(r.top_municipios))}</ul></div>
+        <div class="mini"><h4>📅 Semanas gest.</h4><ul>${renderList(Object.entries(r.semanas))}</ul></div>
+        <div class="mini"><h4>⚖️ Estado nutr.</h4><ul>${renderList(Object.entries(r.estados))}</ul></div>
+        <div class="mini"><h4>🛠 Servicio</h4><ul>${renderList(Object.entries(r.top_servicios))}</ul></div>
+        <div class="mini" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+          <div style="font-size:1.5rem;font-weight:800;color:var(--orange2);">${r.pct}%</div>
+          <div style="font-size:.68rem;color:var(--muted);">del filtro</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function clearFilters() {
+  FILTER_IDS.forEach(id => document.getElementById(id).value = '');
+  initSelects();
+  applyFilters(false);
+}
+FILTER_IDS.forEach(id => document.getElementById(id).addEventListener('change', () => applyFilters(true)));
+window.addEventListener('load', () => applyFilters(false));
+</script>
+</body>
+</html>

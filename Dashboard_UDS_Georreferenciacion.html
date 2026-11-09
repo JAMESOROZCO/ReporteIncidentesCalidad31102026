@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard UDS · Inconsistencias Geográficas · CUÉNTAME</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css"/>
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<style>
+  :root {
+    --bg: #0b1220;
+    --card: #111827;
+    --border: #1f2937;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --green: #22c55e;
+    --cyan: #06b6d4;
+    --purple: #a855f7;
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --yellow: #eab308;
+    --gray: #6b7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0b1220;
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.45;
+  }
+  header {
+    background: linear-gradient(90deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  header h1 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: linear-gradient(90deg, #22d3ee, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header .meta { color: var(--muted); font-size: 0.85rem; }
+  .container { max-width: 1440px; margin: 0 auto; padding: 16px; }
+  .filters {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    align-items: end;
+  }
+  .filters label {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .filters select, .filters input {
+    width: 100%;
+    background: #0f172a !important;
+    border: 1px solid #334155;
+    color: #e5e7eb !important;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 0.85rem;
+    color-scheme: dark;
+  }
+  .filters select:focus, .filters input:focus {
+    outline: none;
+    border-color: var(--cyan);
+  }
+  .filters select option {
+    background: #0f172a !important;
+    color: #e5e7eb !important;
+  }
+  .filters select option:checked,
+  .filters select option:hover {
+    background: #1e3a5f !important;
+    color: #22d3ee !important;
+  }
+  /* Force dark dropdown in most browsers */
+  select {
+    color-scheme: dark;
+  }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  button.btn {
+    background: linear-gradient(135deg, #1e3a5f, #0f172a);
+    border: 1px solid #334155;
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    transition: 0.2s;
+  }
+  button.btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  button.btn-primary {
+    background: linear-gradient(135deg, #0e7490, #155e75);
+    border-color: #0891b2;
+  }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .kpi.green::before { background: var(--green); }
+  .kpi.cyan::before { background: var(--cyan); }
+  .kpi.purple::before { background: var(--purple); }
+  .kpi.orange::before { background: var(--orange); }
+  .kpi.red::before { background: var(--red); }
+  .kpi.yellow::before { background: var(--yellow); }
+  .kpi.gray::before { background: var(--gray); }
+  .kpi .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+  .kpi .value { font-size: 1.65rem; font-weight: 700; margin: 4px 0 2px; }
+  .kpi .sub { font-size: 0.78rem; color: var(--muted); }
+  .kpi.highlight {
+    border-color: #ef4444;
+    box-shadow: 0 0 20px rgba(239,68,68,0.15);
+  }
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 1100px) {
+    .charts-row { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .card h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #cbd5e1;
+  }
+  .map-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 900px) {
+    .map-row { grid-template-columns: 1fr; }
+  }
+  #map {
+    height: 420px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+    font-size: 0.78rem;
+  }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block;
+  }
+  .table-card { margin-bottom: 20px; }
+  table.dataTable {
+    background: transparent !important;
+    color: var(--text) !important;
+    width: 100% !important;
+  }
+  table.dataTable thead th {
+    background: #0f172a !important;
+    color: #94a3b8 !important;
+    border-bottom: 1px solid #334155 !important;
+    font-size: 0.75rem;
+  }
+  table.dataTable tbody td {
+    border-bottom: 1px solid #1e293b !important;
+    font-size: 0.8rem;
+    vertical-align: middle;
+  }
+  table.dataTable tbody tr:hover { background: #1e293b !important; }
+  .dataTables_wrapper .dataTables_filter input,
+  .dataTables_wrapper .dataTables_length select {
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: var(--text);
+    border-radius: 6px;
+    padding: 4px 8px;
+  }
+  .dataTables_info, .dataTables_paginate { color: var(--muted) !important; font-size: 0.8rem; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .badge-critico { background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid #ef4444; }
+  .badge-alerta { background: rgba(234,179,8,0.15); color: #fbbf24; border: 1px solid #eab308; }
+  .badge-correcto { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid #22c55e; }
+  .badge-gris { background: rgba(107,114,128,0.2); color: #9ca3af; border: 1px solid #6b7280; }
+  .note {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.35);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 0.88rem;
+    color: #fca5a5;
+  }
+  .note strong { color: #fecaca; }
+  footer {
+    text-align: center;
+    padding: 16px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+  .leaflet-popup-content { color: #1e293b; font-size: 0.85rem; }
+  canvas { max-height: 260px; }
+
+  .kpi .icon {
+    font-size: 1.4rem;
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    opacity: 0.85;
+  }
+  .cz-panel {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+    border: 1px solid #4c1d95;
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+  }
+  .cz-icon {
+    width: 64px; height: 64px;
+    border-radius: 12px;
+    background: #312e81;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+  }
+  .cz-name { font-size: 1.1rem; font-weight: 700; color: #c4b5fd; }
+  .cz-detail { font-size: 0.82rem; color: #94a3b8; margin-top: 4px; line-height: 1.4; }
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .section-title .sec-icon { font-size: 1.1rem; }
+  #heatmapWrap {
+    overflow-x: auto;
+  }
+  .heatmap-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.78rem;
+  }
+  .heatmap-table th, .heatmap-table td {
+    padding: 8px 10px;
+    text-align: center;
+    border: 1px solid #1e293b;
+  }
+  .heatmap-table th {
+    background: #0f172a;
+    color: #94a3b8;
+    font-weight: 600;
+  }
+  .heatmap-table td.hm {
+    font-weight: 700;
+    color: #0f172a;
+    min-width: 48px;
+  }
+  .card h3 .sec-icon { margin-right: 6px; }
+
+  .btn-menu {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #1e3a5f, #0f172a);
+    border: 1px solid #334155;
+    color: #e5e7eb;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: 0.2s;
+    white-space: nowrap;
+  }
+  .btn-menu:hover {
+    border-color: #22d3ee;
+    color: #22d3ee;
+  }
+  header .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Incidentes en Unidades de Servicio</h1>
+    <div class="meta">Georreferenciación · CUÉNTAME · Regional Valle del Cauca</div>
+  </div>
+  <div class="header-actions">
+    <span class="meta">OCTUBRE 2026 · Datos UDS Agrupadas</span>
+    <a href="index.html" class="btn-menu" title="Volver al menú principal">← Volver al menú</a>
+  </div>
+</header>
+
+<div class="container">
+  <!-- FILTROS -->
+  <div class="filters" id="filters">
+    <div>
+      <label>Centro Zonal</label>
+      <select id="fCentro"><option value="">— Todos —</option></select>
+    </div>
+    <div>
+      <label>Entidad Contratista</label>
+      <select id="fEntidad"><option value="">— Todos —</option></select>
+    </div>
+    <div>
+      <label>Número Contrato</label>
+      <select id="fContrato"><option value="">— Todos —</option></select>
+    </div>
+    <div>
+      <label>UDS (Código + Nombre)</label>
+      <select id="fUDS"><option value="">— Todos —</option></select>
+    </div>
+    <div>
+      <label>Municipio UDS</label>
+      <select id="fMunicipio"><option value="">— Todos —</option></select>
+    </div>
+    <div>
+      <label>Servicio</label>
+      <select id="fServicio"><option value="">— Todos —</option></select>
+    </div>
+    <div>
+      <label>Estado Geo</label>
+      <select id="fEstado"><option value="">— Todos —</option></select>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="limpiarFiltros()">Limpiar todo</button>
+    </div>
+  </div>
+
+  <!-- Panel imagen / info Centro Zonal -->
+  <div class="cz-panel" id="czPanel" style="display:none;">
+    <div class="cz-icon" id="czIcon">📍</div>
+    <div class="cz-info">
+      <div class="cz-name" id="czName">—</div>
+      <div class="cz-detail" id="czDetail">—</div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi cyan">
+      <div class="icon">📋</div>
+      <div class="label">Total UDS analizadas</div>
+      <div class="value" id="kpiTotal">0</div>
+      <div class="sub">Registros en el archivo</div>
+    </div>
+    <div class="kpi red highlight">
+      <div class="icon">🚨</div>
+      <div class="label">UDS fuera de su ubicación</div>
+      <div class="value" id="kpiFuera">0</div>
+      <div class="sub" id="kpiFueraPct">100% del total</div>
+    </div>
+    <div class="kpi orange">
+      <div class="icon">📍</div>
+      <div class="label">Fuera del Municipio</div>
+      <div class="value" id="kpiMun">0</div>
+      <div class="sub">Coordenadas fuera del municipio registrado</div>
+    </div>
+    <div class="kpi red">
+      <div class="icon">🌊</div>
+      <div class="label">Fuera del País / Departamento</div>
+      <div class="value" id="kpiPais">0</div>
+      <div class="sub">Coordenadas críticas (océano / límites)</div>
+    </div>
+    <div class="kpi purple">
+      <div class="icon">🏢</div>
+      <div class="label">Centros Zonales afectados</div>
+      <div class="value" id="kpiCZ">0</div>
+      <div class="sub">Con al menos 1 inconsistencia</div>
+    </div>
+    <div class="kpi yellow">
+      <div class="icon">🗺️</div>
+      <div class="label">Municipios afectados</div>
+      <div class="value" id="kpiMunCount">0</div>
+      <div class="sub">Con registros problemáticos</div>
+    </div>
+    <div class="kpi gray">
+      <div class="icon">❓</div>
+      <div class="label">Sin coordenadas inválidas</div>
+      <div class="value" id="kpiSin">0</div>
+      <div class="sub">Todas las UDS tienen Lat/Lon</div>
+    </div>
+    <div class="kpi green">
+      <div class="icon">✅</div>
+      <div class="label">% Correctamente georreferenciadas</div>
+      <div class="value" id="kpiOk">0%</div>
+      <div class="sub">Dentro del municipio correspondiente</div>
+    </div>
+  </div>
+
+  <!-- GRÁFICAS -->
+  <div class="charts-row">
+    <div class="card">
+      <h3><span class="sec-icon">📊</span> Distribución geográfica de UDS</h3>
+      <canvas id="chartDist"></canvas>
+    </div>
+    <div class="card">
+      <h3><span class="sec-icon">🥧</span> Porcentaje por Estado_Geo</h3>
+      <canvas id="chartPct"></canvas>
+    </div>
+    <div class="card">
+      <h3><span class="sec-icon">🏢</span> Inconsistencias por Centro Zonal</h3>
+      <canvas id="chartCZ"></canvas>
+    </div>
+  </div>
+  <div class="charts-row">
+    <div class="card">
+      <h3><span class="sec-icon">🗺️</span> UDS con inconsistencias por Municipio</h3>
+      <canvas id="chartMun"></canvas>
+    </div>
+    <div class="card">
+      <h3><span class="sec-icon">🧩</span> Inconsistencias por Servicio</h3>
+      <canvas id="chartServ"></canvas>
+    </div>
+    <div class="card">
+      <h3><span class="sec-icon">🚦</span> Clasificación de alertas</h3>
+      <canvas id="chartAlert"></canvas>
+    </div>
+  </div>
+
+  <!-- MAPA -->
+  <div class="map-row">
+    <div class="card">
+      <h3><span class="sec-icon">🌍</span> Mapa geográfico interactivo · Ubicación de las UDS</h3>
+      <div id="map"></div>
+      <div class="legend">
+        <span><i class="dot" style="background:#eab308"></i> Fuera del Municipio</span>
+        <span><i class="dot" style="background:#ef4444"></i> Fuera del País / Crítico</span>
+        <span><i class="dot" style="background:#22c55e"></i> Correcto (ninguno en este set)</span>
+        <span><i class="dot" style="background:#6b7280"></i> Sin coordenadas</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="sec-icon">📌</span> Resumen espacial · Valle del Cauca</h3>
+      <p style="font-size:0.85rem;color:#94a3b8;margin-bottom:12px;">
+        Las coordenadas de las UDS se contrastaron con los límites del municipio registrado y, de forma orientativa, con la caja envolvente del departamento del Valle del Cauca
+        (aprox. lat 3.05–5.10 · lon −77.55 a −75.70).
+      </p>
+      <ul style="font-size:0.84rem;color:#cbd5e1;padding-left:18px;line-height:1.7;">
+        <li>La gran mayoría de registros problemáticos corresponden a <strong>CZ Buenaventura</strong> (zonas rurales, ríos Naya, Calima, Raposo, Juanchaco, etc.).</li>
+        <li>Varias coordenadas se agrupan en el mismo punto (mismo Lat/Lon para múltiples UDS), lo que sugiere captura por lotes o errores de digitación.</li>
+        <li>Los puntos con longitud &lt; −77.3 se proyectan hacia el Pacífico y aparecen clasificados como <strong>Fuera del País</strong>.</li>
+        <li>Ninguna UDS de este archivo se encuentra dentro del polígono oficial de su municipio de registro.</li>
+      </ul>
+      <p style="font-size:0.8rem;color:#64748b;margin-top:14px;">
+        Fuente de clasificación: campo <code>Estado_Geo</code> del archivo Excel (validación espacial previa). El mapa permite zoom y consulta de cada marcador.
+      </p>
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  
+  <div class="card" style="margin-bottom:16px;">
+    <h3><span class="sec-icon">🔥</span> Mapa de calor geográfico · Concentración de incidentes</h3>
+    <p style="font-size:0.8rem;color:#94a3b8;margin-bottom:10px;">
+      Cada círculo es una UDS. El <strong style="color:#fbbf24">calor</strong> muestra zonas con más incidentes.
+      <strong style="color:#ef4444">Rojo intenso</strong> = Fuera del País (peso ×4) · <strong style="color:#eab308">Amarillo</strong> = Fuera del Municipio.
+      Haz zoom para separar grupos (Naya, Juanchaco, Raposo, Calima…).
+    </p>
+    <div id="heatMap" style="height:420px;border-radius:10px;border:1px solid #334155;"></div>
+    <div class="legend" style="margin-top:10px;flex-wrap:wrap;gap:12px;">
+      <span><i class="dot" style="background:#22c55e"></i> Baja densidad</span>
+      <span><i class="dot" style="background:#eab308"></i> Media</span>
+      <span><i class="dot" style="background:#f97316"></i> Alta</span>
+      <span><i class="dot" style="background:#ef4444"></i> Crítica (Fuera País)</span>
+      <span style="color:#94a3b8;font-size:0.78rem;">+ Marcadores individuales sobre el calor</span>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <h3><span class="sec-icon">📑</span> Matriz detallada de Unidades de Servicio · Inconsistencias geográficas</h3>
+    <table id="tablaUDS" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>Entidad Contratista</th>
+          <th>N° Contrato</th>
+          <th>Código UDS</th>
+          <th>Unidad de Servicio</th>
+          <th>Centro Zonal</th>
+          <th>Municipio</th>
+          <th>Servicio</th>
+          <th>Responsable de la UDS</th>
+          <th>Teléfono</th>
+          <th>Estado_Geo</th>
+          <th>Latitud</th>
+          <th>Longitud</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  Dashboard de control de calidad geográfica · CUÉNTAME · Datos: UDS_Agrupadas_Detalle_31082026.xlsx · Generado para análisis de inconsistencias de georreferenciación
+</footer>
+
+<script>
+const RAW_DATA = [{"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE LA CUENCA DEL RIO RIO DAGUA ZONA ALTA Y MEDIA", "NumeroContrato": 76016362024, "CodigoUnidadServicioUDS": 7610900104370, "UnidadServicioUDS": "ALEGRIA DE VIVIR 1", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MARY LUZ RIVAS DIAZ", "TelefonoUDS": 3177822583, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.78336388889, "LONGITUD": -76.7595777778, "EstadoUDS": "ACTIVA", "DireccionUDS": "DAGUA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE LA CUENCA DEL RIO RIO DAGUA ZONA ALTA Y MEDIA", "NumeroContrato": 76016362024, "CodigoUnidadServicioUDS": 7610900104372, "UnidadServicioUDS": "ALEGRIA DE VIVIR 2", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "SENITH MURILLO RIVAS", "TelefonoUDS": 3177822583, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.75003055556, "LONGITUD": -76.7595777778, "EstadoUDS": "ACTIVA", "DireccionUDS": "DAGUA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE LA CUENCA DEL RIO RIO DAGUA ZONA ALTA Y MEDIA", "NumeroContrato": 76016362024, "CodigoUnidadServicioUDS": 7610900104376, "UnidadServicioUDS": "NUEVO AMANECER 2", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "OLGA MARIA VARGAS OCORO", "TelefonoUDS": 3177822583, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.84281666667, "LONGITUD": -76.7936972222, "EstadoUDS": "ACTIVA", "DireccionUDS": "DAGUA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE LA CUENCA DEL RIO RIO DAGUA ZONA ALTA Y MEDIA", "NumeroContrato": 76016362024, "CodigoUnidadServicioUDS": 7610900104379, "UnidadServicioUDS": "LOS PINGUINOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "LUZ MARINA VERGARA MARTINEZ", "TelefonoUDS": 3177822583, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.84281666667, "LONGITUD": -76.7925416667, "EstadoUDS": "ACTIVA", "DireccionUDS": "DAGUA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "FUNDACION RENACER SOCIAL DEL PACIFICO COLOMBIANO", "NumeroContrato": 76016332024, "CodigoUnidadServicioUDS": 7610900104506, "UnidadServicioUDS": "LOS PATITOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MARLYNG BARCO RIVAS", "TelefonoUDS": 3054601350, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.14972222222, "LONGITUD": -76.1663888889, "EstadoUDS": "ACTIVA", "DireccionUDS": "SECTOR 1 68 SN 112 EL CAMBIO BUENAVENTURA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900104679, "UnidadServicioUDS": "LAS PALMITAS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "TalentoHumano": "CRUZ ELENA ANGULO", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.17362222222, "LONGITUD": -77.3814305556, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA CHAVIRU RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "RESGUARDO INDIGENA CHACHAJO", "NumeroContrato": 76015932024, "CodigoUnidadServicioUDS": 7610900104689, "UnidadServicioUDS": "EL FUTURO", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "TalentoHumano": "LUZ DARI ISMARE EQUIA", "TelefonoUDS": 3023149489, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.19271388889, "LONGITUD": -77.2870888889, "EstadoUDS": "ACTIVA", "DireccionUDS": "CHACHAJO", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "INSTITUTO COLOMBIANO DE BIENESTAR FAMILIAR ICBF", "NumeroContrato": "OD 76 420272 00251 2026", "CodigoUnidadServicioUDS": 7662200130889, "UnidadServicioUDS": "EL RETIRO", "CentroZonalUDS": "CZ ROLDANILLO", "MunicipioUDS": "Roldanillo", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "TalentoHumano": "NOHRA ELENA MAYOR MORENO", "TelefonoUDS": 3173751791, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.39503805556, "LONGITUD": -76.2387027778, "EstadoUDS": "ACTIVA", "DireccionUDS": "ESCUELA RODRIGO LLOREDA CAICEDO SEDE EL RETIRO", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76622, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "INSTITUTO COLOMBIANO DE BIENESTAR FAMILIAR ICBF", "NumeroContrato": "OD 76 420272 00251 2026", "CodigoUnidadServicioUDS": 766221134252, "UnidadServicioUDS": "CASCARILLO", "CentroZonalUDS": "CZ ROLDANILLO", "MunicipioUDS": "Roldanillo", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "TalentoHumano": "NOHRA ELENA MAYOR MORENO", "TelefonoUDS": 3104584191, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.39503805556, "LONGITUD": -76.2387027778, "EstadoUDS": "ACTIVA", "DireccionUDS": "ESCUELA RODRIGO LLOREDA CAICEDO SEDE EL RETIRO", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76622, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACIÓN DE HOGARES INFANTILES DEL VALLE  ASOHIVA", "NumeroContrato": 76010312026, "CodigoUnidadServicioUDS": 7673600035929, "UnidadServicioUDS": "MIS PEQUEÑAS ORQUIDEAS", "CentroZonalUDS": "CZ SEVILLA", "MunicipioUDS": "Sevilla", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "LISITH NATALIA TAMAYO OCAMPO", "TelefonoUDS": 3108233475, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.37207944444, "LONGITUD": -75.9506216667, "EstadoUDS": "ACTIVA", "DireccionUDS": "MZ 15 CS 06 PISO 1 QUEBRADA NUEVA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76736, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACION DE PADRES USUARIOS DE LOS HOGARES COMUNITARIOS DE BIENESTAR FAMILIAR OTRAS MODALIDADES DE ATENCION A PRIMERA INFANCIA", "NumeroContrato": 76016022024, "CodigoUnidadServicioUDS": 7630600030429, "UnidadServicioUDS": "TRAVESURAS II", "CentroZonalUDS": "CZ PALMIRA", "MunicipioUDS": "Ginebra", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "LIGIA JANETH MEJIA ARIAS", "TelefonoUDS": 3108313926, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.76770555556, "LONGITUD": -76.230325, "EstadoUDS": "ACTIVA", "DireccionUDS": "CORREGIMIENTO PUENTE ROJO  EN EL CASERIO - GINEBRA (GUACARI)", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76306, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACION DE HOGARES DE BIENESTAR BUGALAGRANDE", "NumeroContrato": 76010122026, "CodigoUnidadServicioUDS": 7611100093147, "UnidadServicioUDS": "MI PEQUEÑO MUNDO IV", "CentroZonalUDS": "CZ BUGA", "MunicipioUDS": "Guadalajara De Buga", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MARIA MONICA GONZALEZ VILLALOBOS", "TelefonoUDS": 3117005418, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.96138888889, "LONGITUD": -76.2586111111, "EstadoUDS": "ACTIVA", "DireccionUDS": "CALLEJON LOS IZQUIERDOS VEREDA PUEBLO NUEVO", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76111, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACION DE HOGARES DE BIENESTAR BUGALAGRANDE", "NumeroContrato": 76010122026, "CodigoUnidadServicioUDS": 7611100093148, "UnidadServicioUDS": "UN BELLO AMANECER", "CentroZonalUDS": "CZ BUGA", "MunicipioUDS": "Guadalajara De Buga", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "ANA MILENA MEJIA ZAPATA", "TelefonoUDS": 3176907817, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.99413888889, "LONGITUD": -76.2818888889, "EstadoUDS": "ACTIVA", "DireccionUDS": "CL 1 B 4 23 BARRIO EL VINEDO PRESIDENTE", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76111, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACION DE HOGARES DE BIENESTAR FAMILIAR SECTOR LOS CHORROS", "NumeroContrato": 76015692024, "CodigoUnidadServicioUDS": 7600100034480, "UnidadServicioUDS": "MIS CARINITOS", "CentroZonalUDS": "CZ LADERA", "MunicipioUDS": "Cali", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MARIA EUGENIA SANCHEZ", "TelefonoUDS": 3207183172, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.64166666667, "LONGITUD": -76.9372222222, "EstadoUDS": "ACTIVA", "DireccionUDS": "KR 76 B BIS OESTE 2 E 09  CHORROS COMUNA 18", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76001, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACION DE HOGARES DE BIENESTAR FAMILIAR SECTOR LOS CHORROS", "NumeroContrato": 76015692024, "CodigoUnidadServicioUDS": 7600100034524, "UnidadServicioUDS": "OSITOS CARIÑOSITOS", "CentroZonalUDS": "CZ LADERA", "MunicipioUDS": "Cali", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "GLORIA ISLET MUÑOZ", "TelefonoUDS": 3152851256, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.6525, "LONGITUD": -76.9188888889, "EstadoUDS": "ACTIVA", "DireccionUDS": "CL 2 B 73 B 32  B LOS CHORROS COMUNA 18", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76001, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACION DE HOGARES DE BIENESTAR FAMILIAR SECTOR LOS CHORROS", "NumeroContrato": 76015692024, "CodigoUnidadServicioUDS": 7600100034525, "UnidadServicioUDS": "LA ESPERANZA", "CentroZonalUDS": "CZ LADERA", "MunicipioUDS": "Cali", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "OMAIRA OSNAS", "TelefonoUDS": 3235847, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.65194444444, "LONGITUD": -76.9188888889, "EstadoUDS": "ACTIVA", "DireccionUDS": "CL 2 B 73 33 CHORROS COMUNA 18", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76001, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACIÓN DE HOGARES INFANTILES DEL VALLE  ASOHIVA", "NumeroContrato": 76010312026, "CodigoUnidadServicioUDS": 7686900026655, "UnidadServicioUDS": "PICARDIAS", "CentroZonalUDS": "CZ YUMBO", "MunicipioUDS": "Vijes", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "ROSA ELISA DAZA APOLINDAR", "TelefonoUDS": 3136396408, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.41133369444, "LONGITUD": -76.5086845833, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA LAS BRISAS", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76869, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE JUANCHACO", "NumeroContrato": 76015652024, "CodigoUnidadServicioUDS": 7610900095090, "UnidadServicioUDS": "LOS PITUFOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "INGRID PAOLA PORTOCARRERO TORRES", "TelefonoUDS": 3167786306, "Estado_Geo": "Fuera del País", "LATITUD": 3.91861111111, "LONGITUD": -77.3597222222, "EstadoUDS": "ACTIVA", "DireccionUDS": "JUANCHACO", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "critico", "Estado_Geo_Validado": "Fuera del País", "Estado_Geo_Original": "Fuera del País"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE JUANCHACO", "NumeroContrato": 76015652024, "CodigoUnidadServicioUDS": 7610900095091, "UnidadServicioUDS": "MIS PRIMERAS TRAVESURAS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "VIVIAN SILENA MOSQUERA ALBORNOZ", "TelefonoUDS": 3122961818, "Estado_Geo": "Fuera del País", "LATITUD": 3.91861111111, "LONGITUD": -77.3597222222, "EstadoUDS": "ACTIVA", "DireccionUDS": "JUANCHACO", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "critico", "Estado_Geo_Validado": "Fuera del País", "Estado_Geo_Original": "Fuera del País"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE JUANCHACO", "NumeroContrato": 76015652024, "CodigoUnidadServicioUDS": 7610900095092, "UnidadServicioUDS": "MANITOS INQUIETAS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "RAQUEL MOSQUERA CASTILLO", "TelefonoUDS": 3122961818, "Estado_Geo": "Fuera del País", "LATITUD": 3.91861111111, "LONGITUD": -77.3597222222, "EstadoUDS": "ACTIVA", "DireccionUDS": "JUANCHACO", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "critico", "Estado_Geo_Validado": "Fuera del País", "Estado_Geo_Original": "Fuera del País"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096400, "UnidadServicioUDS": "LAS BRISAS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "LEONILA ZAMORA ANGULO", "TelefonoUDS": 3172937617, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.16675555556, "LONGITUD": -77.1353416667, "EstadoUDS": "ACTIVA", "DireccionUDS": "LA CONCEPCION RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096408, "UnidadServicioUDS": "LOS PATICOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "IRMA NELLY ANGULO ANGULO", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.16357222222, "LONGITUD": -77.1344333333, "EstadoUDS": "ACTIVA", "DireccionUDS": "LA CONCEPCION RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096551, "UnidadServicioUDS": "BRISA Y SABER 1", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "CLEMENTINA ZAMORA", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.16445, "LONGITUD": -77.1352805556, "EstadoUDS": "ACTIVA", "DireccionUDS": "LA CONCEPCION RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096567, "UnidadServicioUDS": "LOS ANGELES", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "ALICIA PANAMEÑO ANGULO", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.134425, "LONGITUD": -77.2629305556, "EstadoUDS": "ACTIVA", "DireccionUDS": "DOS QUEBRADAS RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096570, "UnidadServicioUDS": "LOS LORITOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "LUZ MILA VALENCIA SINISTERRA", "TelefonoUDS": 3182931512, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.11729444444, "LONGITUD": -77.2537305556, "EstadoUDS": "ACTIVA", "DireccionUDS": "REDONDITO RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096572, "UnidadServicioUDS": "EL COCALITO", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MARIA ELIDA RAMOS GARCES", "TelefonoUDS": 3182931512, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.11729444444, "LONGITUD": -77.2537305556, "EstadoUDS": "ACTIVA", "DireccionUDS": "REDONDITO RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096604, "UnidadServicioUDS": "VISTA HERMOSA", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "OLGA GARCES ANGULO", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.18640833333, "LONGITUD": -77.3835888889, "EstadoUDS": "ACTIVA", "DireccionUDS": "LAS PAVAS RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096608, "UnidadServicioUDS": "EL PROGRESO", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "YANELLY SINISTERRA MINA", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.16838333333, "LONGITUD": -77.1353416667, "EstadoUDS": "ACTIVA", "DireccionUDS": "SAN BARTOLO RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096621, "UnidadServicioUDS": "NIÑOS DE SAN BARTOLO", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "BELERMINA MINA GARCES", "TelefonoUDS": 3105362261, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.16838333333, "LONGITUD": -77.1353416667, "EstadoUDS": "ACTIVA", "DireccionUDS": "SAN BARTOLO RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096637, "UnidadServicioUDS": "EL GUAYABITO", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "DOLORES RODALLEGA VALENCIA", "TelefonoUDS": 3152448073, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.21075833333, "LONGITUD": -77.3955416667, "EstadoUDS": "ACTIVA", "DireccionUDS": "EL CACAO RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096641, "UnidadServicioUDS": "EL ARBOLITO 3", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "ALBA LIBRADA ANGULO GARCES", "TelefonoUDS": 3158158529, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.18784722222, "LONGITUD": -77.3835361111, "EstadoUDS": "ACTIVA", "DireccionUDS": "SANTA BARVARA RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096666, "UnidadServicioUDS": "EL PROGRESO", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "OMAIRA ANGULO SINISTERRA", "TelefonoUDS": 3167730711, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.23371666667, "LONGITUD": -77.4542666667, "EstadoUDS": "ACTIVA", "DireccionUDS": "LAS PALMAS RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096703, "UnidadServicioUDS": "BRISAS DEL RIO", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MARIA NELLY ANGULO ANGULO", "TelefonoUDS": 3175506487, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.25101388889, "LONGITUD": -77.4333277778, "EstadoUDS": "ACTIVA", "DireccionUDS": "PALO BRUJO RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096711, "UnidadServicioUDS": "LOS SALTARINES", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MARIA CRUZ ANGULO ANGULO", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.15532777778, "LONGITUD": -77.3675944444, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA SAGRADA FAMILIA RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096712, "UnidadServicioUDS": "CLUB DE LOS BULLICIOSOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MARIA DIONISIA VIVEROS MEDINA", "TelefonoUDS": 3157385793, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.24821944444, "LONGITUD": -77.4268666667, "EstadoUDS": "ACTIVA", "DireccionUDS": "SAN PEDRO RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096722, "UnidadServicioUDS": "LOS PINGUINOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "ROSA MARIA ANGULO ANGULO", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.16305277778, "LONGITUD": -77.3649083333, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA SAGRADA FAMILIA RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096731, "UnidadServicioUDS": "EL ARBOLITO 2", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "NELLY GARCES ZAMORA", "TelefonoUDS": 3172683442, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.18640833333, "LONGITUD": -77.3835888889, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA SANTA BARVARA RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096738, "UnidadServicioUDS": "EL BARQUITO MARINERO 12", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "OLGA MARIA GARCES MOSQUERA", "TelefonoUDS": 3155516830, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.18640833333, "LONGITUD": -77.3835888889, "EstadoUDS": "ACTIVA", "DireccionUDS": "LAS CRUCES RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096768, "UnidadServicioUDS": "LA SONRRISA 1", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "BERNELICIA ANGULO MOSQUERA", "TelefonoUDS": 3186943936, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.15523611111, "LONGITUD": -77.3675666667, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA SANTA MARIA RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096838, "UnidadServicioUDS": "EL PORVENIR", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "EREMIA PANAMEÑO DELGADO", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.15745555556, "LONGITUD": -77.2932055556, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA SAN ANTONIO RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900096972, "UnidadServicioUDS": "LA BRISA", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MAURA LILI CELORIO PANAMEÑO", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.13398333333, "LONGITUD": -77.2622416667, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA DOS QUEBRADAS RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900097166, "UnidadServicioUDS": "LOS DELFINES", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "FILIDA ZAMORA GARCES", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.16838333333, "LONGITUD": -77.1353416667, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA JUAN SANTOS RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900097253, "UnidadServicioUDS": "EL CLAVELITO", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "ISABELLA MONDRAGON HINESTROZA", "TelefonoUDS": 3158509920, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.175075, "LONGITUD": -77.3836138889, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA SANTA BARVARA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900097322, "UnidadServicioUDS": "EL BANANITO", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "EDILMA GARCES VIVEROS", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.20666666667, "LONGITUD": -77.3863138889, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA EL PASTICO", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACION DE HOGARES DE BIENESTAR RURAL VILLAGORGONA", "NumeroContrato": 76015582024, "CodigoUnidadServicioUDS": 7613000050361, "UnidadServicioUDS": "CASA DE LA ALEGRIA", "CentroZonalUDS": "CZ PALMIRA", "MunicipioUDS": "Candelaria", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "ALBA LUCIA RAMOS MOSQUERA", "TelefonoUDS": 3216355035, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.47613611111, "LONGITUD": -76.3932083333, "EstadoUDS": "ACTIVA", "DireccionUDS": "BOLO ALIZAL LLOREDA 15-981", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76130, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE LA CUNCA BAJA DEL RIO CALIMA", "NumeroContrato": 76016352024, "CodigoUnidadServicioUDS": 7610900056649, "UnidadServicioUDS": "HOGAR CARIÑOSITOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "FRANCIA ELENA VALENCIA SINISTERRA", "TelefonoUDS": 3168909555, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.15872222222, "LONGITUD": -76.0683944444, "EstadoUDS": "ACTIVA", "DireccionUDS": "KM 15 VIA CALI CARRETERA ALEJANDRO CABAL POMBO LA CAUCANA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE LA CUNCA BAJA DEL RIO CALIMA", "NumeroContrato": 76016352024, "CodigoUnidadServicioUDS": 7610900056673, "UnidadServicioUDS": "HOGAR CAMINITO ALEGRE", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MARLIN VIVEROS ANGULO", "TelefonoUDS": 3165019812, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.07786666667, "LONGITUD": -76.0514972222, "EstadoUDS": "ACTIVA", "DireccionUDS": "KM 15 VIA CALI CARRETERA ALEJANDRO CABAL POMBO LA CAUCANA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE TAPARAL HUMANE", "NumeroContrato": 76016212024, "CodigoUnidadServicioUDS": 7610900056733, "UnidadServicioUDS": "HOGAR COCALITO 1", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "KATHERINE SUAREZ RIASCOS", "TelefonoUDS": 3188260660, "Estado_Geo": "Fuera del País", "LATITUD": 3.86841583333, "LONGITUD": -77.0732444444, "EstadoUDS": "ACTIVA", "DireccionUDS": "RIO ANCHICAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "critico", "Estado_Geo_Validado": "Fuera del País", "Estado_Geo_Original": "Fuera del País"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE LA CUNCA BAJA DEL RIO CALIMA", "NumeroContrato": 76016352024, "CodigoUnidadServicioUDS": 7610900056794, "UnidadServicioUDS": "HOGAR EMANUEL", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "SANDRA PAOLA MORENO LARA", "TelefonoUDS": 3177905104, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.07786666667, "LONGITUD": -76.0514972222, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA LA BREA KM 6 VIA CALIMA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DE LA CUNCA BAJA DEL RIO CALIMA", "NumeroContrato": 76016352024, "CodigoUnidadServicioUDS": 7610900056824, "UnidadServicioUDS": "HOGAR LOS ANGELITOS TRAVIESOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "SANDRA YIRLEY REVELO ERAZO", "TelefonoUDS": 3206605502, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.07786666667, "LONGITUD": -76.0514972222, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA LA BREA KM 6 VIA CALIMA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO RAPOSO", "NumeroContrato": 76015862024, "CodigoUnidadServicioUDS": 7610900056927, "UnidadServicioUDS": "HOGAR LOS PECES", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "BENILDA RENTERIA CUERO", "TelefonoUDS": 3148066540, "Estado_Geo": "Fuera del País", "LATITUD": 3.66044722222, "LONGITUD": -77.172325, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA SECADERO", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "critico", "Estado_Geo_Validado": "Fuera del País", "Estado_Geo_Original": "Fuera del País"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO RAPOSO", "NumeroContrato": 76015862024, "CodigoUnidadServicioUDS": 7610900057046, "UnidadServicioUDS": "HOGAR LAS CONCHITAS 1", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "ROSA VALENCIA CUERO", "TelefonoUDS": 3217265028, "Estado_Geo": "Fuera del País", "LATITUD": 3.66047777778, "LONGITUD": -77.1706194444, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA LA COMBA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "critico", "Estado_Geo_Validado": "Fuera del País", "Estado_Geo_Original": "Fuera del País"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO RAPOSO", "NumeroContrato": 76015862024, "CodigoUnidadServicioUDS": 7610900057051, "UnidadServicioUDS": "HOGAR LOS DELFINES", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "NISLE INES RENTERIA VALENCIA", "TelefonoUDS": 3154590496, "Estado_Geo": "Fuera del País", "LATITUD": 3.60465277778, "LONGITUD": -77.2114166667, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA BOCAS DE MAYORQUIN", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "critico", "Estado_Geo_Validado": "Fuera del País", "Estado_Geo_Original": "Fuera del País"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO RAPOSO", "NumeroContrato": 76015862024, "CodigoUnidadServicioUDS": 7610900057069, "UnidadServicioUDS": "HOGAR PALOMITAS 2", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB FAMI BIENVENIR - FAMILIAR Y COMUNITARIA", "TalentoHumano": "GORGONIA ABADIA DIAZ", "TelefonoUDS": 3217746912, "Estado_Geo": "Fuera del País", "LATITUD": 3.60528333333, "LONGITUD": -77.9616055556, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA BOCAS DE MAYORQUIN", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "critico", "Estado_Geo_Validado": "Fuera del Departamento", "Estado_Geo_Original": "Fuera del País"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900099929, "UnidadServicioUDS": "LOS OSITOS INQUIETOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MERCEDES ANGULO ANGULO", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.16838333333, "LONGITUD": -77.1353416667, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA LA CONCEPCION RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CABILDO INDIGENA DE LA COMUNIDAD TAPARALITO", "NumeroContrato": 76015602024, "CodigoUnidadServicioUDS": 7610900100022, "UnidadServicioUDS": "HOGAR WAUNAM", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "HERMINDA CHOCHO PIRAZA", "TelefonoUDS": 3235201779, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.21733333333, "LONGITUD": -77.1069444444, "EstadoUDS": "ACTIVA", "DireccionUDS": "RIO SAN JUAN", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CABILDO INDIGENA DE LA COMUNIDAD TAPARALITO", "NumeroContrato": 76015602024, "CodigoUnidadServicioUDS": 7610900100023, "UnidadServicioUDS": "HOGAR TASCON", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "LUVIRA ORTIZ PIRAZA", "TelefonoUDS": 3235201779, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.21733333333, "LONGITUD": -77.1069444444, "EstadoUDS": "ACTIVA", "DireccionUDS": "RIO SANJUAN", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CABILDO INDIGENA DE LA COMUNIDAD TAPARALITO", "NumeroContrato": 76015602024, "CodigoUnidadServicioUDS": 7610900100024, "UnidadServicioUDS": "HOGAR UNIDOS", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "BERTALINA CHIRIPUA MEMBACHE", "TelefonoUDS": 3235201779, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.21733333333, "LONGITUD": -77.1069444444, "EstadoUDS": "ACTIVA", "DireccionUDS": "RIO SANJUAN", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CABILDO INDIGENA DE LA COMUNIDAD TAPARALITO", "NumeroContrato": 76015602024, "CodigoUnidadServicioUDS": 7610900100025, "UnidadServicioUDS": "HOGAR LOMITA", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MARCELA PIRAZA TASCON", "TelefonoUDS": 3235201779, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.21733333333, "LONGITUD": -77.1069444444, "EstadoUDS": "ACTIVA", "DireccionUDS": "RIO SANJUAN", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CABILDO INDIGENA DE LA COMUNIDAD TAPARALITO", "NumeroContrato": 76015602024, "CodigoUnidadServicioUDS": 7610900100026, "UnidadServicioUDS": "HOGAR PIRAZA", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "OLGITA CHAMARRA CHOCHO", "TelefonoUDS": 3235201779, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.21733333333, "LONGITUD": -77.1069444444, "EstadoUDS": "ACTIVA", "DireccionUDS": "RIO SANJUAN", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "CONSEJO COMUNITARIO DE LA COMUNIDAD NEGRA DEL RIO NAYA", "NumeroContrato": 76015762024, "CodigoUnidadServicioUDS": 7610900100051, "UnidadServicioUDS": "LAS CRUCES", "CentroZonalUDS": "CZ BUENAVENTURA", "MunicipioUDS": "Buenaventura", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB - FAMILIAR Y COMUNITARIA", "TalentoHumano": "GLADYS RODALLEGAS MINA", "TelefonoUDS": 2402074, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.19237777778, "LONGITUD": -77.3847611111, "EstadoUDS": "ACTIVA", "DireccionUDS": "VEREDA LAS CRUCES RIO NAYA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76109, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "INSTITUTO COLOMBIANO DE BIENESTAR FAMILIAR ICBF", "NumeroContrato": "OD 76 420272 00247 2026", "CodigoUnidadServicioUDS": 761471111408, "UnidadServicioUDS": "ESCUELA 1 DE MAYO", "CentroZonalUDS": "CZ CARTAGO", "MunicipioUDS": "Cartago", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "EDUCACIÓN INICIAL EN EL HOGAR - FAMILIAR Y COMUNITARIA", "TalentoHumano": "DERLY PIEDAD RESTREPO SANIN", "TelefonoUDS": 3128785042, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.75763555556, "LONGITUD": -75.9003780556, "EstadoUDS": "ACTIVA", "DireccionUDS": "CL 2 3 A 24  INSTITUCION EDUCATIVA CIUDAD DE CARTAGO SEDE SAN JUAN BOSCO BARRIO COLLAREJO", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76147, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACIÓN DE HOGARES INFANTILES DEL VALLE  ASOHIVA", "NumeroContrato": 76010312026, "CodigoUnidadServicioUDS": 7661600073772, "UnidadServicioUDS": "MI PEQUEÑA ALDEA", "CentroZonalUDS": "CZ TULUA", "MunicipioUDS": "Riofrio", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "JARDÍN COMUNITARIO - FAMILIAR Y COMUNITARIA", "TalentoHumano": "MANUELA FERNANDA CALVO MORALES", "TelefonoUDS": 3113499897, "Estado_Geo": "Fuera del Municipio", "LATITUD": 4.13111111111, "LONGITUD": -76.6361111111, "EstadoUDS": "ACTIVA", "DireccionUDS": "CL 6 3 11  FRENTE AL PARQUE DE FENICIA", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76616, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}, {"EntidadContratista": "ASOCIACION DE PADRES HOGARES DE BIENESTAR COMUNEROS 1 GRUPO 3", "NumeroContrato": 76016142024, "CodigoUnidadServicioUDS": 7600100077131, "UnidadServicioUDS": "MANITAS DEL FUTURO", "CentroZonalUDS": "CZ SURORIENTAL", "MunicipioUDS": "Cali", "DepartamentoUDS": "Valle Del Cauca ", "Servicio": "HCB FAMI - FAMILIAR Y COMUNITARIA", "TalentoHumano": "GLADYS VERA CORTES", "TelefonoUDS": 4038983, "Estado_Geo": "Fuera del Municipio", "LATITUD": 3.24305555556, "LONGITUD": -76.2936111111, "EstadoUDS": "ACTIVA", "DireccionUDS": "CL 56 33 74 BARRIO COMUNEROS 1 COMUNA 15", "CodigoDepartamentoUDS": 76, "CodigoMunicipioUDS": 76001, "Alerta": "alerta", "Estado_Geo_Validado": "Fuera del Municipio", "Estado_Geo_Original": "Fuera del Municipio"}];
+
+let filtered = [...RAW_DATA];
+let map, markersLayer;
+let charts = {};
+
+function unique(arr, key) {
+  return [...new Set(arr.map(r => r[key]).filter(v => v != null && v !== ''))].sort((a,b) => String(a).localeCompare(String(b)));
+}
+
+function fillSelect(id, values, selected = '') {
+  const el = document.getElementById(id);
+  const cur = selected || el.value || '';
+  el.innerHTML = '';
+  const optAll = document.createElement('option');
+  optAll.value = '';
+  optAll.textContent = '— Todos —';
+  el.appendChild(optAll);
+  values.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    if (String(v) === String(cur)) opt.selected = true;
+    el.appendChild(opt);
+  });
+  // If previous value no longer exists, reset to Todos
+  if (cur && !values.map(String).includes(String(cur))) {
+    el.value = '';
+  }
+}
+
+function getSelected(id) {
+  return document.getElementById(id).value;
+}
+
+function initFilters() {
+  fillSelect('fEntidad', unique(RAW_DATA, 'EntidadContratista'));
+  fillSelect('fContrato', unique(RAW_DATA, 'NumeroContrato').map(String));
+  fillSelect('fUDS', RAW_DATA.map(r => `${r.CodigoUnidadServicioUDS} · ${r.UnidadServicioUDS}`).sort());
+  fillSelect('fCentro', unique(RAW_DATA, 'CentroZonalUDS'));
+  fillSelect('fMunicipio', unique(RAW_DATA, 'MunicipioUDS'));
+  fillSelect('fServicio', unique(RAW_DATA, 'Servicio'));
+  fillSelect('fEstado', unique(RAW_DATA, 'Estado_Geo'));
+}
+
+// Cascading: when any filter changes, recompute filtered set from ALL active filters,
+// then refresh the option lists of the OTHER filters based on the remaining data.
+function onFilterChange(changedId) {
+  const ent = getSelected('fEntidad');
+  const cont = getSelected('fContrato');
+  const uds = getSelected('fUDS');
+  const cz = getSelected('fCentro');
+  const mun = getSelected('fMunicipio');
+  const serv = getSelected('fServicio');
+  const est = getSelected('fEstado');
+
+  filtered = RAW_DATA.filter(r => {
+    if (ent && r.EntidadContratista !== ent) return false;
+    if (cont && String(r.NumeroContrato) !== cont) return false;
+    if (uds && `${r.CodigoUnidadServicioUDS} · ${r.UnidadServicioUDS}` !== uds) return false;
+    if (cz && r.CentroZonalUDS !== cz) return false;
+    if (mun && r.MunicipioUDS !== mun) return false;
+    if (serv && r.Servicio !== serv) return false;
+    if (est && r.Estado_Geo !== est) return false;
+    return true;
+  });
+
+  // Rebuild options for all filters (preserve current selection when possible)
+  // Base the available options on the data that matches the OTHER filters
+  rebuildCascade(changedId);
+  updateAll();
+}
+
+function dataMatchingExcept(exceptId) {
+  const ent = exceptId === 'fEntidad' ? '' : getSelected('fEntidad');
+  const cont = exceptId === 'fContrato' ? '' : getSelected('fContrato');
+  const uds = exceptId === 'fUDS' ? '' : getSelected('fUDS');
+  const cz = exceptId === 'fCentro' ? '' : getSelected('fCentro');
+  const mun = exceptId === 'fMunicipio' ? '' : getSelected('fMunicipio');
+  const serv = exceptId === 'fServicio' ? '' : getSelected('fServicio');
+  const est = exceptId === 'fEstado' ? '' : getSelected('fEstado');
+
+  return RAW_DATA.filter(r => {
+    if (ent && r.EntidadContratista !== ent) return false;
+    if (cont && String(r.NumeroContrato) !== cont) return false;
+    if (uds && `${r.CodigoUnidadServicioUDS} · ${r.UnidadServicioUDS}` !== uds) return false;
+    if (cz && r.CentroZonalUDS !== cz) return false;
+    if (mun && r.MunicipioUDS !== mun) return false;
+    if (serv && r.Servicio !== serv) return false;
+    if (est && r.Estado_Geo !== est) return false;
+    return true;
+  });
+}
+
+function rebuildCascade(changedId) {
+  // For each filter, show options that exist in the data matching all OTHER filters
+  const baseEnt = dataMatchingExcept('fEntidad');
+  const baseCont = dataMatchingExcept('fContrato');
+  const baseUDS = dataMatchingExcept('fUDS');
+  const baseCZ = dataMatchingExcept('fCentro');
+  const baseMun = dataMatchingExcept('fMunicipio');
+  const baseServ = dataMatchingExcept('fServicio');
+  const baseEst = dataMatchingExcept('fEstado');
+
+  fillSelect('fEntidad', unique(baseEnt, 'EntidadContratista'), getSelected('fEntidad'));
+  fillSelect('fContrato', unique(baseCont, 'NumeroContrato').map(String), getSelected('fContrato'));
+  fillSelect('fUDS', baseUDS.map(r => `${r.CodigoUnidadServicioUDS} · ${r.UnidadServicioUDS}`).sort(), getSelected('fUDS'));
+  fillSelect('fCentro', unique(baseCZ, 'CentroZonalUDS'), getSelected('fCentro'));
+  fillSelect('fMunicipio', unique(baseMun, 'MunicipioUDS'), getSelected('fMunicipio'));
+  fillSelect('fServicio', unique(baseServ, 'Servicio'), getSelected('fServicio'));
+  fillSelect('fEstado', unique(baseEst, 'Estado_Geo'), getSelected('fEstado'));
+}
+
+function aplicarFiltros() {
+  onFilterChange(null);
+}
+
+function limpiarFiltros() {
+  document.getElementById('fEntidad').value = '';
+  document.getElementById('fContrato').value = '';
+  document.getElementById('fUDS').value = '';
+  document.getElementById('fCentro').value = '';
+  document.getElementById('fMunicipio').value = '';
+  document.getElementById('fServicio').value = '';
+  document.getElementById('fEstado').value = '';
+  filtered = [...RAW_DATA];
+  initFilters();
+  updateAll();
+}
+
+function countBy(arr, key) {
+  const m = {};
+  arr.forEach(r => {
+    const k = r[key] || 'Sin dato';
+    m[k] = (m[k] || 0) + 1;
+  });
+  return m;
+}
+
+function updateKPIs() {
+  const n = filtered.length;
+  const fueraMun = filtered.filter(r => r.Estado_Geo === 'Fuera del Municipio').length;
+  const fueraPais = filtered.filter(r => r.Estado_Geo === 'Fuera del País').length;
+  const fuera = fueraMun + fueraPais;
+  const cz = new Set(filtered.map(r => r.CentroZonalUDS)).size;
+  const mun = new Set(filtered.map(r => r.MunicipioUDS)).size;
+  const sin = filtered.filter(r => r.LATITUD == null || r.LONGITUD == null).length;
+  const ok = n - fuera;
+
+  document.getElementById('kpiTotal').textContent = n;
+  document.getElementById('kpiFuera').textContent = fuera;
+  document.getElementById('kpiFueraPct').textContent = n ? `${((fuera/n)*100).toFixed(1)}% del total filtrado` : '—';
+  document.getElementById('kpiMun').textContent = fueraMun;
+  document.getElementById('kpiPais').textContent = fueraPais;
+  document.getElementById('kpiCZ').textContent = cz;
+  document.getElementById('kpiMunCount').textContent = mun;
+  document.getElementById('kpiSin').textContent = sin;
+  document.getElementById('kpiOk').textContent = n ? `${((ok/n)*100).toFixed(1)}%` : '0%';
+}
+
+function updateCharts() {
+  const dist = countBy(filtered, 'Estado_Geo');
+  const labelsDist = Object.keys(dist);
+  const dataDist = Object.values(dist);
+
+  if (charts.dist) charts.dist.destroy();
+  charts.dist = new Chart(document.getElementById('chartDist'), {
+    type: 'bar',
+    data: {
+      labels: labelsDist,
+      datasets: [{
+        label: 'UDS',
+        data: dataDist,
+        backgroundColor: labelsDist.map(l => l.includes('País') ? '#ef4444' : '#eab308'),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+        y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, beginAtZero: true }
+      }
+    }
+  });
+
+  if (charts.pct) charts.pct.destroy();
+  charts.pct = new Chart(document.getElementById('chartPct'), {
+    type: 'doughnut',
+    data: {
+      labels: labelsDist,
+      datasets: [{
+        data: dataDist,
+        backgroundColor: labelsDist.map(l => l.includes('País') ? '#ef4444' : '#eab308'),
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12 } }
+      }
+    }
+  });
+
+  const byCZ = countBy(filtered, 'CentroZonalUDS');
+  const czLabels = Object.keys(byCZ).sort((a,b) => byCZ[b]-byCZ[a]);
+  if (charts.cz) charts.cz.destroy();
+  charts.cz = new Chart(document.getElementById('chartCZ'), {
+    type: 'bar',
+    data: {
+      labels: czLabels,
+      datasets: [{
+        label: 'UDS con inconsistencia',
+        data: czLabels.map(k => byCZ[k]),
+        backgroundColor: '#a855f7',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, beginAtZero: true },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  const byMun = countBy(filtered, 'MunicipioUDS');
+  const munLabels = Object.keys(byMun).sort((a,b) => byMun[b]-byMun[a]);
+  if (charts.mun) charts.mun.destroy();
+  charts.mun = new Chart(document.getElementById('chartMun'), {
+    type: 'bar',
+    data: {
+      labels: munLabels,
+      datasets: [{
+        data: munLabels.map(k => byMun[k]),
+        backgroundColor: '#06b6d4',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, beginAtZero: true },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  const byServ = countBy(filtered, 'Servicio');
+  const servLabels = Object.keys(byServ);
+  if (charts.serv) charts.serv.destroy();
+  charts.serv = new Chart(document.getElementById('chartServ'), {
+    type: 'bar',
+    data: {
+      labels: servLabels.map(s => s.length > 35 ? s.slice(0,32)+'…' : s),
+      datasets: [{
+        data: servLabels.map(k => byServ[k]),
+        backgroundColor: '#22c55e',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', maxRotation: 45, font: { size: 9 } }, grid: { display: false } },
+        y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, beginAtZero: true }
+      }
+    }
+  });
+
+  const alertData = {
+    'Crítico (Fuera País)': filtered.filter(r => r.Estado_Geo === 'Fuera del País').length,
+    'Alerta (Fuera Municipio)': filtered.filter(r => r.Estado_Geo === 'Fuera del Municipio').length,
+    'Correcto': filtered.filter(r => !['Fuera del País','Fuera del Municipio'].includes(r.Estado_Geo)).length,
+    'Sin coordenadas': filtered.filter(r => r.LATITUD == null).length
+  };
+  if (charts.alert) charts.alert.destroy();
+  charts.alert = new Chart(document.getElementById('chartAlert'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(alertData),
+      datasets: [{
+        data: Object.values(alertData),
+        backgroundColor: ['#ef4444', '#eab308', '#22c55e', '#6b7280'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12, font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function initMap() {
+  map = L.map('map').setView([3.8, -76.8], 8);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri — Source: Esri, DeLorme, NAVTEQ',
+    maxZoom: 16
+  }).addTo(map);
+  // Optional reference layer (light labels)
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 16,
+    opacity: 0.7
+  }).addTo(map);
+
+  // Approximate Valle del Cauca rectangle
+  const valleBounds = [[3.05, -77.55], [5.10, -75.70]];
+  L.rectangle(valleBounds, {
+    color: '#22d3ee',
+    weight: 1.5,
+    fillColor: '#22d3ee',
+    fillOpacity: 0.05,
+    dashArray: '6 4'
+  }).addTo(map).bindPopup('Aprox. límites Departamento Valle del Cauca');
+
+  markersLayer = L.layerGroup().addTo(map);
+  updateMap();
+}
+
+function updateMap() {
+  markersLayer.clearLayers();
+  const bounds = [];
+  filtered.forEach(r => {
+    if (r.LATITUD == null || r.LONGITUD == null) return;
+    const color = r.Estado_Geo === 'Fuera del País' ? '#ef4444' : '#eab308';
+    const m = L.circleMarker([r.LATITUD, r.LONGITUD], {
+      radius: 7,
+      fillColor: color,
+      color: '#fff',
+      weight: 1,
+      opacity: 0.9,
+      fillOpacity: 0.85
+    });
+    m.bindPopup(`
+      <strong>${r.UnidadServicioUDS}</strong><br>
+      Código: ${r.CodigoUnidadServicioUDS}<br>
+      Centro Zonal: ${r.CentroZonalUDS}<br>
+      Municipio registrado: ${r.MunicipioUDS}<br>
+      Estado_Geo: <b style="color:${color}">${r.Estado_Geo}</b><br>
+      Lat: ${r.LATITUD.toFixed(5)} · Lon: ${r.LONGITUD.toFixed(5)}<br>
+      Entidad: ${r.EntidadContratista?.slice(0,40) || ''}…
+    `);
+    m.addTo(markersLayer);
+    bounds.push([r.LATITUD, r.LONGITUD]);
+  });
+  if (bounds.length) {
+    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 11 });
+  }
+}
+
+function updateTable() {
+  const dt = $('#tablaUDS').DataTable();
+  dt.clear();
+  filtered.forEach(r => {
+    const badgeClass = r.Estado_Geo === 'Fuera del País' ? 'badge-critico' : 'badge-alerta';
+    dt.row.add([
+      r.EntidadContratista || '',
+      r.NumeroContrato || '',
+      r.CodigoUnidadServicioUDS || '',
+      r.UnidadServicioUDS || '',
+      r.CentroZonalUDS || '',
+      r.MunicipioUDS || '',
+      r.Servicio || '',
+      r.TalentoHumano || '',
+      r.TelefonoUDS || '',
+      `<span class="badge ${badgeClass}">${r.Estado_Geo}</span>`,
+      r.LATITUD != null ? r.LATITUD.toFixed(6) : '',
+      r.LONGITUD != null ? r.LONGITUD.toFixed(6) : ''
+    ]);
+  });
+  dt.draw();
+}
+
+
+const CZ_INFO = {
+  "CZ BUENAVENTURA": { icon: "🌊", dir: "Av. Simón Bolívar Km 9, Barrio Transformación, Buenaventura", tel: "57(601) 437 76 30 Ext. 264043" },
+  "CZ LADERA": { icon: "⛰️", dir: "Cra 43 # 05 A-17 Barrio Tequendama, Cali", tel: "57(601) 437 76 30 Ext. 262000" },
+  "CZ ROLDANILLO": { icon: "🍇", dir: "Cra 6 # 09-103 Barrio San Nicolás, Roldanillo", tel: "57(601) 437 76 30 Ext. 272001" },
+  "CZ PALMIRA": { icon: "🌴", dir: "Cra 31 # 23-52 Barrio Nuevo, Palmira", tel: "57(601) 437 76 30 Ext. 268000" },
+  "CZ BUGA": { icon: "🏛️", dir: "Cra 8 Carretera Central vía Chambimbal, Guadalajara de Buga", tel: "57(601) 437 76 30 Ext. 269002" },
+  "CZ SEVILLA": { icon: "☕", dir: "Centro Zonal Sevilla – Valle del Cauca", tel: "57(601) 437 76 30" },
+  "CZ YUMBO": { icon: "🏭", dir: "Centro Zonal Yumbo / La Cumbre – Valle", tel: "57(601) 437 76 30" },
+  "CZ CARTAGO": { icon: "⛪", dir: "Centro Zonal Cartago – Valle del Cauca", tel: "57(601) 437 76 30" },
+  "CZ TULUA": { icon: "🌽", dir: "Centro Zonal Tuluá – Valle del Cauca", tel: "57(601) 437 76 30" },
+  "CZ SURORIENTAL": { icon: "🏙️", dir: "Centro Zonal Suroriental – Cali", tel: "57(601) 437 76 30" }
+};
+
+function updateCZPanel() {
+  const cz = getSelected('fCentro');
+  const panel = document.getElementById('czPanel');
+  if (!cz) {
+    panel.style.display = 'none';
+    return;
+  }
+  const info = CZ_INFO[cz] || { icon: "📍", dir: "Información ICBF Regional Valle", tel: "" };
+  document.getElementById('czIcon').textContent = info.icon;
+  document.getElementById('czName').textContent = cz;
+  document.getElementById('czDetail').innerHTML = info.dir + (info.tel ? '<br>☎ ' + info.tel : '');
+  panel.style.display = 'flex';
+}
+
+
+
+
+let heatMapObj = null;
+let heatLayer = null;
+let heatMarkers = null;
+
+function initHeatMap() {
+  if (heatMapObj) return;
+  heatMapObj = L.map('heatMap', { scrollWheelZoom: true }).setView([3.8, -76.9], 8);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri',
+    maxZoom: 16
+  }).addTo(heatMapObj);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 16, opacity: 0.55
+  }).addTo(heatMapObj);
+  heatMarkers = L.layerGroup().addTo(heatMapObj);
+}
+
+function updateHeatmap() {
+  initHeatMap();
+  if (heatLayer) {
+    heatMapObj.removeLayer(heatLayer);
+    heatLayer = null;
+  }
+  if (heatMarkers) heatMarkers.clearLayers();
+
+  const points = [];
+  const bounds = [];
+  filtered.forEach(r => {
+    if (r.LATITUD == null || r.LONGITUD == null) return;
+    const isCritico = r.Estado_Geo === 'Fuera del País';
+    // Peso alto para críticos → manchas más intensas
+    const w = isCritico ? 4 : 1.5;
+    points.push([r.LATITUD, r.LONGITUD, w]);
+    bounds.push([r.LATITUD, r.LONGITUD]);
+
+    // Marcador individual visible encima del calor
+    const color = isCritico ? '#ef4444' : '#eab308';
+    const m = L.circleMarker([r.LATITUD, r.LONGITUD], {
+      radius: isCritico ? 9 : 7,
+      fillColor: color,
+      color: '#ffffff',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.92
+    });
+    m.bindPopup(
+      `<strong>${r.UnidadServicioUDS || ''}</strong><br>` +
+      `Código: ${r.CodigoUnidadServicioUDS || ''}<br>` +
+      `CZ: ${r.CentroZonalUDS || ''}<br>` +
+      `Municipio: ${r.MunicipioUDS || ''}<br>` +
+      `<b style="color:${color}">${r.Estado_Geo}</b><br>` +
+      `Lat ${Number(r.LATITUD).toFixed(5)} · Lon ${Number(r.LONGITUD).toFixed(5)}`
+    );
+    m.addTo(heatMarkers);
+  });
+
+  if (!points.length) {
+    setTimeout(() => heatMapObj.invalidateSize(), 150);
+    return;
+  }
+
+  // Capa de calor más visible: radio mayor, menos blur, gradiente fuerte
+  heatLayer = L.heatLayer(points, {
+    radius: 38,
+    blur: 16,
+    maxZoom: 14,
+    minOpacity: 0.45,
+    max: 4,
+    gradient: {
+      0.0: 'rgba(34,197,94,0)',
+      0.15: '#22c55e',
+      0.35: '#84cc16',
+      0.5: '#eab308',
+      0.65: '#f97316',
+      0.8: '#ef4444',
+      1.0: '#b91c1c'
+    }
+  }).addTo(heatMapObj);
+
+  if (bounds.length) {
+    heatMapObj.fitBounds(bounds, { padding: [50, 50], maxZoom: 10 });
+  }
+  setTimeout(() => heatMapObj.invalidateSize(), 200);
+}
+
+
+function updateAll() {
+  updateKPIs();
+  updateCharts();
+  updateMap();
+  updateTable();
+  updateCZPanel();
+  updateHeatmap();
+}
+
+$(document).ready(function() {
+  initFilters();
+  // Cascading on every change
+  ['fEntidad','fContrato','fUDS','fCentro','fMunicipio','fServicio','fEstado'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => onFilterChange(id));
+  });
+  $('#tablaUDS').DataTable({
+    pageLength: 15,
+    order: [[9, 'desc']],
+    dom: 'Bfrtip',
+    buttons: [
+      { extend: 'excelHtml5', text: 'Exportar Excel', className: 'btn' },
+      { extend: 'csvHtml5', text: 'Exportar CSV', className: 'btn' }
+    ],
+    language: {
+      search: 'Buscar UDS:',
+      lengthMenu: 'Mostrar _MENU_',
+      info: 'Mostrando _START_–_END_ de _TOTAL_ registros',
+      paginate: { previous: 'Ant', next: 'Sig' }
+    },
+    columnDefs: [
+      { targets: 9, orderable: true }
+    ]
+  });
+  initMap();
+  updateAll();
+});
+</script>
+</body>
+</html>
